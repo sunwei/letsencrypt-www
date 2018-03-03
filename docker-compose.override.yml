@@ -1,0 +1,8 @@
+version: '3.2'
+
+services:
+  letsencrypt-https:
+    volumes:
+      - ./:/repo
+      - ./hooks:/usr/local/bin/dehydrated/hooks
+      - ~/.aliyuncli:/root/.aliyuncli

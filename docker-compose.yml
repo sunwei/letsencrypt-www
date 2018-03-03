@@ -1,0 +1,12 @@
+version: '3.2'
+
+services:
+  letsencrypt-https:
+    image: letsencrypt-https:latest
+    build: .
+    env_file:
+      - ./docker/env/provider.env
+      - ./docker/env/qshell.env
+    environment:
+      - FQDN
+
