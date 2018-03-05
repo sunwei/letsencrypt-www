@@ -23,6 +23,7 @@
 2. Github上提issue或者PR.
 
 微信二维码：
+
 ![微信二维码](./screenshots/wechat-wayde.png)
 
 ### 相关截图说明：
