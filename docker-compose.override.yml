@@ -5,4 +5,3 @@ services:
     volumes:
       - ./:/repo
       - ./hooks:/usr/local/bin/dehydrated/hooks
-      - ~/.aliyuncli:/root/.aliyuncli

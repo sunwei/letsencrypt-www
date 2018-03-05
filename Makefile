@@ -1,4 +1,4 @@
-fqdn ?= yimi.pro
+fqdn ?= abc.fsky.top
 
 # SSL certs automation with LetsEncrypt
 

@@ -5,7 +5,7 @@ services:
     image: letsencrypt-https:latest
     build: .
     env_file:
-      - ./docker/env/provider.env
+      - ./docker/env/dnspod.env
       - ./docker/env/qshell.env
     environment:
       - FQDN
