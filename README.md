@@ -1,5 +1,7 @@
 # 使用 letsencrypt-https 为你的域名提供免费SSL/TLS证书 
 
+[![Build Status](https://travis-ci.org/sunzhongmou/letsencrypt.svg?branch=master)](https://travis-ci.org/sunzhongmou/letsencrypt)
+
 如何使用：
 
 1. 将自己的根域名添加到[DNSPod](https://www.dnspod.cn)，并将DNS服务器改为DNSPod推荐的。 - 如果你希望提供更多DNS Provider的支持，如阿里云DNS、或者CloudFlare、Godaddy、Google、AWS等，请提PR，或者直接添加码主微信 - wayde191。
