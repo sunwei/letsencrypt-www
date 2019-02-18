@@ -1,4 +1,4 @@
 language: bash
 
 script:
-    - ./test.sh
+    - make test
