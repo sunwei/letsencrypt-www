@@ -2,6 +2,15 @@ fqdn ?= abc.fsky.top
 
 # SSL certs automation with LetsEncrypt
 
+build:
+	docker-compose build letsencrypt
+
+unlock:
+	./unlock.sh
+
+push: unlock
+	./docker-push.sh
+
 issue:
 	docker-compose -f docker-compose.yml run --rm \
 	-e FQDN=$(fqdn) letsencrypt-https
