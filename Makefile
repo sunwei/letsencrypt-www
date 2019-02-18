@@ -21,3 +21,8 @@ tests:
 # Run this file (with 'entr' installed) to watch all files and rerun tests on changes
 watch:
 	ls -d **/* | entr ./test.sh
+
+shell:
+	docker-compose -f docker-compose.yml run --rm \
+	 -e FQDN=$(fqdn) letsencrypt-https \
+	/bin/bash
