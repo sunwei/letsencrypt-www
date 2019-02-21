@@ -64,16 +64,17 @@ http_request() {
     httpMethod="${1}"
     requestURI="${2}"
     payloadData="${3:-}"
-    echo "${payloadData}" >&2
     responseCode=
 
     set +e
     if [[ "HEAD" = "${httpMethod}" ]]; then
         responseCode="$(curl -4 -A "letsencrypt/0.0.1 curl/7.54.0" -s -w "%{http_code}" -o "${tempCont}" "${requestURI}" -I)"
         curlRet="${?}"
-    elif [[ "${1}" = "POST" ]]; then
+    elif [[ "GET" = "${httpMethod}" ]]; then
+        responseCode="$(curl -4 -A "letsencrypt/0.0.1 curl/7.54.0" -L -s -w "%{http_code}" -o "${tempCont}" "${requestURI}" -D "${tempHeaders}")"
+        curlRet="${?}"
+    elif [[ "POST" = "${httpMethod}" ]]; then
         responseCode="$(curl -4 -A "letsencrypt/0.0.1 curl/7.54.0"  -s -w "%{http_code}" -o "${tempCont}" "${requestURI}" -D "${tempHeaders}" -H 'Content-Type: application/jose+json' -d "${payloadData}")"
-        cat "${tempCont}" >&2
         curlRet="${?}"
     fi
     set -e

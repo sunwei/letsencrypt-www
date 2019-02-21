@@ -4,7 +4,11 @@ set -e
 set -u
 set -o pipefail
 
+[[ -n "${ZSH_VERSION:-}" ]] && set -o SH_WORD_SPLIT && set +o FUNCTION_ARGZERO && set -o NULL_GLOB && set -o noglob
+[[ -z "${ZSH_VERSION:-}" ]] && shopt -s nullglob && set -f
+
 exec 3>&-
+exec 4>&-
 
 source letscommon.sh
 
@@ -66,8 +70,6 @@ _register_account() {
     pubExponent64="$(printf '%x' "$(openssl rsa -in "${accountKey}" -noout -text | awk '/publicExponent/ {print $2}')" | hex2bin | urlbase64)"
     pubMod64="$(openssl rsa -in "${accountKey}" -noout -modulus | cut -d'=' -f2 | hex2bin | urlbase64)"
 
-    thumbPrint="$(printf '{"e":"%s","kty":"RSA","n":"%s"}' "${pubExponent64}" "${pubMod64}" | openssl dgst -sha256 -binary | urlbase64)"
-
     nonce="$(http_request HEAD "${CA_NEW_NONCE}" | grep -i ^Replay-Nonce: | awk -F ': ' '{print $2}' | tr -d '\n\r')"
     header='{"alg": "RS256", "jwk": {"e": "'"${pubExponent64}"'", "kty": "RSA", "n": "'"${pubMod64}"'"}}'
 
@@ -116,14 +118,16 @@ _build_deploy_args() {
 
     local idx=0
     for uri in ${order_authorizations}; do
-        authorizations[${idx}]="$(echo "${uri}" | sed -E -e 's/\"(.*)".*/\1/')"
+        authorizations[${idx}]="$(echo "${uri}" | sed -E -e 's/\"(.*)".*/\1/' | clean_json)"
         idx=$((idx+1))
     done
     echo " + Received ${idx} authorizations URLs from the CA"
 
+    thumbPrint="$(printf '{"e":"%s","kty":"RSA","n":"%s"}' "${pubExponent64}" "${pubMod64}" | openssl dgst -sha256 -binary | urlbase64)"
+
     local idx=0
-    for authorization in ${auththorizations[*]}; do
-        response="$(http_request GET "$(echo "${authorization}" | sed -E -e 's/\"(.*)".*/\1/' | clean_json)")"
+    for authorization in ${authorizations[*]}; do
+        response="$(http_request GET "${authorization}" | clean_json)"
         identifier="$(echo "${response}" | get_json_dict_value identifier | get_json_string_value value)"
         echo " + Handling authorization for ${identifier}"
 
@@ -134,8 +138,9 @@ _build_deploy_args() {
         fi
 
         # Find challenge in authorization
-        challenges="$(echo "${response}" | _sed 's/.*"challenges": \[(\{.*\})\].*/\1/')"
-        challenge="$(<<<"${challenges}" _sed -e 's/^[^\[]+\[(.+)\]$/\1/' -e 's/\}(, (\{)|(\]))/}\'$'\n''\2/g' | grep \""${CHALLENGE_TYPE}"\" || true)"
+        challenges="$(echo "${response}" | sed -E 's/.*"challenges": \[(\{.*\})\].*/\1/')"
+        challenge="$(<<<"${challenges}" sed -E -e 's/^[^\[]+\[(.+)\]$/\1/' -e 's/\}(, (\{)|(\]))/}\'$'\n''\2/g' | grep \""${CHALLENGE_TYPE}"\" || true)"
+        # If the specified challenge type is not found, exit with error and show the valid types
         if [ -z "${challenge}" ]; then
           allowed_validations="$(grep -Eo '"type": "[^"]+"' <<< "${challenges}" | grep -Eo ' "[^"]+"' | _sed -e 's/"//g' -e 's/^ //g')"
           _exiterr "Validating this certificate is not possible using ${CHALLENGE_TYPE}. Possible validation methods are: ${allowed_validations}"
@@ -144,7 +149,7 @@ _build_deploy_args() {
         # Gather challenge information
         challenge_names[${idx}]="${identifier}"
         challenge_tokens[${idx}]="$(echo "${challenge}" | get_json_string_value token)"
-        challenge_uris[${idx}]="$(echo "${challenge}" | _sed 's/"validationRecord": ?\[[^]]+\]//g' | get_json_string_value url)"
+        challenge_uris[${idx}]="$(echo "${challenge}" | get_json_string_value url)"
 
         # Prepare challenge tokens and deployment parameters
         keyauth="${challenge_tokens[${idx}]}.${thumbPrint}"
@@ -161,12 +166,17 @@ _build_deploy_args() {
 
 _create_txt_record() {
     local DOMAIN="${1}" TOKEN_FILENAME="${2}" TOKEN_VALUE="${3}"
+    echo "Create TXT record : ${DOMAIN}, ${TOKEN_FILENAME}, ${TOKEN_VALUE}"
 
-    echo "deploy_challenge called: ${DOMAIN}, ${TOKEN_FILENAME}, ${TOKEN_VALUE}"
+    loginToken='83717,32ff6aa5112b7bdaf64f48763c4788c4'
+    uri="https://dnsapi.cn/Record.Create"
+    recordType="TXT"
 
-    lexicon dnspod create ${DOMAIN} TXT --name="_acme-challenge.${DOMAIN}." --content="${TOKEN_VALUE}"
+    data='{"login_token": "'"${loginToken}"'", "record_type": "'"${recordType}"'", "value": "'"${TOKEN_VALUE}"'", "domain": "sunzhongmou.com", "sub_domain": "_acme-challenge.abcd", "format": "json", "record_line": "默认"}'
+    http_request POST ${uri} ${data}
+}
 
-    sleep 30
+_remove_txt_record() {
 }
 
 _deploy_challenge() {
@@ -177,58 +187,75 @@ _deploy_challenge() {
     done
 }
 
+_clean_challenge() {
+    local idx=0
+    while [ ${idx} -lt ${num_pending_challenges} ]; do
+        $(_remove_txt_record ${deploy_args[${idx}]})
+        idx=$((idx+1))
+    done
+}
+
 _validate_pending_challenge() {
     local idx=0
     while [ ${idx} -lt ${num_pending_challenges} ]; do
         echo " + Responding to challenge for ${challenge_names[${idx}]} authorization..."
-
         # Ask the acme-server to verify our challenge and wait until it is no longer pending
-        if [[ ${API} -eq 1 ]]; then
-            result="$(signed_request "${challenge_uris[${idx}]}" '{"resource": "challenge", "keyAuthorization": "'"${keyauths[${idx}]}"'"}' | clean_json)"
-        else
-            result="$(signed_request "${challenge_uris[${idx}]}" '{"keyAuthorization": "'"${keyauths[${idx}]}"'"}' | clean_json)"
-        fi
+
+        payload='{"keyAuthorization": "'"${keyauths[${idx}]}"'"}'
+        payload64=$(printf '%s' "${payload}" | urlbase64)
+
+        nonce="$(http_request HEAD "${CA_NEW_NONCE}" | grep -i ^Replay-Nonce: | awk -F ': ' '{print $2}' | tr -d '\n\r')"
+
+        header='{"alg": "RS256", "jwk": {"e": "'"${pubExponent64}"'", "kty": "RSA", "n": "'"${pubMod64}"'"}}'
+        protected='{"alg": "RS256", "kid": "'"${ACCOUNT_URL}"'", "url": "'"${CA_NEW_ORDER}"'", "nonce": "'"${nonce}"'"}'
+        protected64="$(printf '%s' "${protected}" | urlbase64)"
+
+        signed64="$(printf '%s' "${protected64}.${payload64}" | openssl dgst -sha256 -sign "${accountKey}" | urlbase64)"
+        data='{"protected": "'"${protected64}"'", "payload": "'"${payload64}"'", "signature": "'"${signed64}"'"}'
+
+        result="$(http_request POST "${challenge_uris[${idx}]}" "${data}" | clean_json)"
 
         reqstatus="$(printf '%s\n' "${result}" | get_json_string_value status)"
 
         while [[ "${reqstatus}" = "pending" ]]; do
             sleep 1
-            result="$(http_request get "${challenge_uris[${idx}]}")"
+            result="$(http_request GET "${challenge_uris[${idx}]}")"
             reqstatus="$(printf '%s\n' "${result}" | get_json_string_value status)"
         done
 
         if [[ "${reqstatus}" = "valid" ]]; then
             echo " + Challenge is valid!"
         else
-            [[ -n "${HOOK}" ]] && "${HOOK}" "invalid_challenge" "${altname}" "${result}"
-        break
-    fi
-    idx=$((idx+1))
-    done
-
-    if [[ ${num_pending_challenges} -ne 0 ]]; then
-        echo " + Cleaning challenge tokens..."
-
-        # Clean challenge tokens using chained hook
-        [[ -n "${HOOK}" ]] && [[ "${HOOK_CHAIN}" = "yes" ]] && "${HOOK}" "clean_challenge" ${deploy_args[@]}
-
-        # Clean remaining challenge tokens if validation has failed
-        local idx=0
-        while [ ${idx} -lt ${num_pending_challenges} ]; do
-          # Delete challenge file
-          [[ "${CHALLENGETYPE}" = "http-01" ]] && rm -f "${WELLKNOWN}/${challenge_tokens[${idx}]}"
-          # Delete alpn verification certificates
-          [[ "${CHALLENGETYPE}" = "tls-alpn-01" ]] && rm -f "${ALPNCERTDIR}/${challenge_names[${idx}]}.crt.pem" "${ALPNCERTDIR}/${challenge_names[${idx}]}.key.pem"
-          # Clean challenge token using non-chained hook
-          [[ -n "${HOOK}" ]] && [[ "${HOOK_CHAIN}" != "yes" ]] && "${HOOK}" "clean_challenge" ${deploy_args[${idx}]}
-          idx=$((idx+1))
-        done
-
-        if [[ "${reqstatus}" != "valid" ]]; then
-          echo " + Challenge validation has failed :("
-          _exiterr "Challenge is invalid! (returned: ${reqstatus}) (result: ${result})"
+            echo " - Challenge failed!"
+            break
         fi
+
+        idx=$((idx+1))
+    done
+}
+
+_sign_csr() {
+    local csr="${1}"
+    if { true >&3; } 2>/dev/null; then
+        : # fd 3 looks OK
+    else
+        _exiterr "sign_csr: FD 3 not open"
     fi
+    finalize="$(echo "${csr}" | get_json_string_value finalize)"
+
+    # Finally request certificate from the acme-server and store it in cert-${timestamp}.pem and link from cert.pem
+    echo " + Requesting certificate..."
+    csr64="$( <<<"${csr}" "${OPENSSL}" req -config "${OPENSSL_CNF}" -outform DER | urlbase64)"
+    result="$(signed_request "${finalize}" '{"csr": "'"${csr64}"'"}' | clean_json | get_json_string_value certificate)"
+    crt="$(http_request get "${result}")"
+
+    # Try to load the certificate to detect corruption
+    echo " + Checking certificate..."
+    _openssl x509 -text <<<"${crt}"
+
+    echo "${crt}" >&3
+
+    echo " + Done!"
 }
 
 _issue_domain() {
@@ -237,22 +264,19 @@ _issue_domain() {
     accountkey="${CERTDIR}/account-key-${timestamp}.pem"
     privatekey="${CERTDIR}/private-${timestamp}.pem"
     csr="${CERTDIR}/${timestamp}.csr"
+    crt_path="${CERTDIR}/cert-${timestamp}.pem"
 
     _generate_account_key "${accountkey}"
     _register_account "${accountkey}"
     result="$(_new_order "${accountkey}")"
+    _build_deploy_args "${result}"
+    _deploy_challenge
+    _validate_pending_challenge
+    _clean_challenge
 
     _generate_private_key "${privatekey}"
     _generate_csr "${privatekey}" "${csr}"
-
-    _build_deploy_args result
-    _deploy_challenge
-    _validate_pending_challenge
-
-
-
-
-    echo "${result}"
+    _sign_csr "${result}" 3>"${crt_path}"
 
 }
 

@@ -13,7 +13,7 @@ push: unlock
 
 issue:
 	docker-compose -f docker-compose.yml run --rm \
-	-e FQDN=$(fqdn) letsencrypt-https
+	-e FQDN=$(fqdn) letsencrypt
 
 tests:
 	./test/libs/bats/bin/bats ./test/*.bats
@@ -24,5 +24,5 @@ watch:
 
 shell:
 	docker-compose -f docker-compose.yml run --rm \
-	 -e FQDN=$(fqdn) letsencrypt-https \
+	 -e FQDN=$(fqdn) letsencrypt \
 	/bin/bash

@@ -1,0 +1,14 @@
+{
+  "status": "pending",
+  "expires": "2019-02-28T02:37:03.234728415Z",
+  "identifiers": [
+    {
+      "type": "dns",
+      "value": "abcd.sunzhongmou.com"
+    }
+  ],
+  "authorizations": [
+    "https://acme-staging-v02.api.letsencrypt.org/acme/authz/TQ5IjaUJxsYvqo1rRA1c99lE5CN7aNi-yFnPG3yAW90"
+  ],
+  "finalize": "https://acme-staging-v02.api.letsencrypt.org/acme/finalize/8309983/23978210"
+}
