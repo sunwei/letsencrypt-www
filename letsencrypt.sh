@@ -173,16 +173,29 @@ _create_txt_record() {
     recordType="TXT"
 
     data='{"login_token": "'"${loginToken}"'", "record_type": "'"${recordType}"'", "value": "'"${TOKEN_VALUE}"'", "domain": "sunzhongmou.com", "sub_domain": "_acme-challenge.abcd", "format": "json", "record_line": "默认"}'
-    http_request POST ${uri} ${data}
+#    http_request POST ${uri} ${data}
+    curl -X POST https://dnsapi.cn/Record.Create -d "login_token=83717,32ff6aa5112b7bdaf64f48763c4788c4&format=json&domain=sunzhongmou.com&sub_domain=_acme-challenge.abcd&record_type=TXT&value=${TOKEN_VALUE}&record_line=默认"
+
+    sleep 5
 }
 
 _remove_txt_record() {
+#    local DOMAIN="${1}" TOKEN_FILENAME="${2}" TOKEN_VALUE="${3}" RECORD_ID="${4}"
+#    echo "Remove TXT record : ${DOMAIN}, ${TOKEN_FILENAME}, ${TOKEN_VALUE}"
+#
+#    loginToken='83717,32ff6aa5112b7bdaf64f48763c4788c4'
+#    uri="https://dnsapi.cn/Record.Remove"
+#
+#    data='{"login_token": "'"${loginToken}"'", "domain": "sunzhongmou.com", "record_id": "'"${RECORD_ID}"'", "format": "json"}'
+#    http_request POST ${uri} ${data}
+    echo 'todo'
 }
 
 _deploy_challenge() {
     local idx=0
     while [ ${idx} -lt ${num_pending_challenges} ]; do
-        $(_create_txt_record ${deploy_args[${idx}]})
+        echo "---- ${deploy_args[${idx}]}"
+        _create_txt_record ${deploy_args[${idx}]}
         idx=$((idx+1))
     done
 }
@@ -190,12 +203,13 @@ _deploy_challenge() {
 _clean_challenge() {
     local idx=0
     while [ ${idx} -lt ${num_pending_challenges} ]; do
-        $(_remove_txt_record ${deploy_args[${idx}]})
+        _remove_txt_record ${deploy_args[${idx}]}
         idx=$((idx+1))
     done
 }
 
 _validate_pending_challenge() {
+    local accountKey="${1}"
     local idx=0
     while [ ${idx} -lt ${num_pending_challenges} ]; do
         echo " + Responding to challenge for ${challenge_names[${idx}]} authorization..."
@@ -207,7 +221,7 @@ _validate_pending_challenge() {
         nonce="$(http_request HEAD "${CA_NEW_NONCE}" | grep -i ^Replay-Nonce: | awk -F ': ' '{print $2}' | tr -d '\n\r')"
 
         header='{"alg": "RS256", "jwk": {"e": "'"${pubExponent64}"'", "kty": "RSA", "n": "'"${pubMod64}"'"}}'
-        protected='{"alg": "RS256", "kid": "'"${ACCOUNT_URL}"'", "url": "'"${CA_NEW_ORDER}"'", "nonce": "'"${nonce}"'"}'
+        protected='{"alg": "RS256", "kid": "'"${ACCOUNT_URL}"'", "url": "'"${challenge_uris[${idx}]}"'", "nonce": "'"${nonce}"'"}'
         protected64="$(printf '%s' "${protected}" | urlbase64)"
 
         signed64="$(printf '%s' "${protected64}.${payload64}" | openssl dgst -sha256 -sign "${accountKey}" | urlbase64)"
@@ -221,6 +235,8 @@ _validate_pending_challenge() {
             sleep 1
             result="$(http_request GET "${challenge_uris[${idx}]}")"
             reqstatus="$(printf '%s\n' "${result}" | get_json_string_value status)"
+            echo '---'
+            echo "${reqstatus}"
         done
 
         if [[ "${reqstatus}" = "valid" ]]; then
@@ -236,22 +252,24 @@ _validate_pending_challenge() {
 
 _sign_csr() {
     local csr="${1}"
+    local newOrder="${2}"
+
     if { true >&3; } 2>/dev/null; then
         : # fd 3 looks OK
     else
         _exiterr "sign_csr: FD 3 not open"
     fi
-    finalize="$(echo "${csr}" | get_json_string_value finalize)"
+    finalize="$(echo "${newOrder}" | get_json_string_value finalize)"
 
     # Finally request certificate from the acme-server and store it in cert-${timestamp}.pem and link from cert.pem
     echo " + Requesting certificate..."
-    csr64="$( <<<"${csr}" "${OPENSSL}" req -config "${OPENSSL_CNF}" -outform DER | urlbase64)"
+    csr64="$( <<<"${csr}" openssl req -outform DER | urlbase64)"
     result="$(signed_request "${finalize}" '{"csr": "'"${csr64}"'"}' | clean_json | get_json_string_value certificate)"
     crt="$(http_request get "${result}")"
 
     # Try to load the certificate to detect corruption
     echo " + Checking certificate..."
-    _openssl x509 -text <<<"${crt}"
+    openssl x509 -text <<<"${crt}"
 
     echo "${crt}" >&3
 
@@ -271,13 +289,14 @@ _issue_domain() {
     result="$(_new_order "${accountkey}")"
     _build_deploy_args "${result}"
     _deploy_challenge
-    _validate_pending_challenge
+    _validate_pending_challenge "${accountkey}"
     _clean_challenge
 
-    _generate_private_key "${privatekey}"
-    _generate_csr "${privatekey}" "${csr}"
-    _sign_csr "${result}" 3>"${crt_path}"
+#    _generate_private_key "${privatekey}"
+#    _generate_csr "${privatekey}" "${csr}"
+#    _sign_csr "$(< "${csr}")" "${result}" 3>"${crt_path}"
 
+    echo "${timestamp}"
 }
 
 main() {
