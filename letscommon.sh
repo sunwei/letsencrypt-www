@@ -72,7 +72,7 @@ http_request() {
         curlRet="${?}"
     elif [[ "GET" = "${httpMethod}" ]]; then
         responseCode="$(curl -4 -A "letsencrypt/0.0.1 curl/7.54.0" -L -s -w "%{http_code}" -o "${tempCont}" "${requestURI}" -D "${tempHeaders}")"
-        cat "${tempCont}" >&2
+#        cat "${tempCont}" >&2
         curlRet="${?}"
     elif [[ "POST" = "${httpMethod}" ]]; then
         responseCode="$(curl -4 -A "letsencrypt/0.0.1 curl/7.54.0"  -s -w "%{http_code}" -o "${tempCont}" "${requestURI}" -D "${tempHeaders}" -H 'Content-Type: application/jose+json' -d "${payloadData}")"

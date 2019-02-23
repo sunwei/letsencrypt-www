@@ -19,6 +19,9 @@ CA_NEW_ORDER="https://acme-staging-v02.api.letsencrypt.org/acme/new-order"
 CA_NEW_NONCE="https://acme-staging-v02.api.letsencrypt.org/acme/new-nonce"
 CA_NEW_ACCOUNT="https://acme-staging-v02.api.letsencrypt.org/acme/new-acct"
 
+OPENSSL_CNF=
+[[ -z "${OPENSSL_CNF}" ]] && OPENSSL_CNF="$(openssl version -d | cut -d\" -f2)/openssl.cnf"
+
 ACCOUNT_KEY_JSON="./cert/account-key.json"
 ACCOUNT_ID=
 ACCOUNT_URL=
@@ -39,24 +42,6 @@ keyauth_hook=
 keyauths=()
 deploy_args=()
 num_pending_challenges=
-
-_generate_private_key() {
-    echo " + Generating private key..."
-    openssl genrsa -out "${1}" 2048
-}
-
-_generate_csr() {
-    prikey="${1}"
-    shift
-    csr="${1}"
-
-    SUBJ="/CN=${FQDN}/"
-    SAN="DNS:abcd.sunzhongmou.com"
-    tmp_openssl_cnf="$(_mktemp)"
-    printf "[SAN]\nsubjectAltName=%s" "${SAN}" >> "${tmp_openssl_cnf}"
-
-    openssl req -new -sha256 -key "${prikey}" -out "${csr}" -subj "${SUBJ}" -reqexts SAN -config "${tmp_openssl_cnf}"
-}
 
 _generate_account_key() {
     echo " + Generating account key..."
@@ -93,7 +78,7 @@ _register_account() {
 
 _new_order(){
     accountKey="${1}"
-    echo "> Requesting new cert order from Let's Encrypt CA..."
+#    echo "> Requesting new cert order from Let's Encrypt CA..."
 
     payload='{"identifiers": [{"type": "dns", "value": "abcd.sunzhongmou.com"}]}'
     payload64=$(printf '%s' "${payload}" | urlbase64)
@@ -114,7 +99,6 @@ _build_deploy_args() {
     local certOrder="${1}"
 
     order_authorizations="$(echo ${certOrder} | get_json_array_value authorizations)"
-    finalize="$(echo "${certOrder}" | get_json_string_value finalize)"
 
     local idx=0
     for uri in ${order_authorizations}; do
@@ -194,7 +178,6 @@ _remove_txt_record() {
 _deploy_challenge() {
     local idx=0
     while [ ${idx} -lt ${num_pending_challenges} ]; do
-        echo "---- ${deploy_args[${idx}]}"
         _create_txt_record ${deploy_args[${idx}]}
         idx=$((idx+1))
     done
@@ -250,9 +233,29 @@ _validate_pending_challenge() {
     done
 }
 
+_generate_private_key() {
+    echo " + Generating private key..."
+    openssl genrsa -out "${1}" 2048
+}
+
+_generate_csr() {
+    prikey="${1}"
+    shift
+    csr="${1}"
+
+    SUBJ="/CN=${FQDN}/"
+    SAN="DNS:abcd.sunzhongmou.com"
+    tmp_openssl_cnf="$(_mktemp)"
+    cat "${OPENSSL_CNF}" > "${tmp_openssl_cnf}"
+    printf "[SAN]\nsubjectAltName=%s" "${SAN}" >> "${tmp_openssl_cnf}"
+
+    openssl req -new -sha256 -key "${prikey}" -out "${csr}" -subj "${SUBJ}" -reqexts SAN -config "${tmp_openssl_cnf}"
+}
+
 _sign_csr() {
     local csr="${1}"
     local newOrder="${2}"
+    local accountKey="${3}"
 
     if { true >&3; } 2>/dev/null; then
         : # fd 3 looks OK
@@ -263,9 +266,23 @@ _sign_csr() {
 
     # Finally request certificate from the acme-server and store it in cert-${timestamp}.pem and link from cert.pem
     echo " + Requesting certificate..."
-    csr64="$( <<<"${csr}" openssl req -outform DER | urlbase64)"
-    result="$(signed_request "${finalize}" '{"csr": "'"${csr64}"'"}' | clean_json | get_json_string_value certificate)"
-    crt="$(http_request get "${result}")"
+    csr64="$( <<<"${csr}" openssl req -config "${OPENSSL_CNF}" -outform DER | urlbase64)"
+
+    payload='{"csr": "'"${csr64}"'"}'
+    payload64=$(printf '%s' "${payload}" | urlbase64)
+
+    nonce="$(http_request HEAD "${CA_NEW_NONCE}" | grep -i ^Replay-Nonce: | awk -F ': ' '{print $2}' | tr -d '\n\r')"
+
+    header='{"alg": "RS256", "jwk": {"e": "'"${pubExponent64}"'", "kty": "RSA", "n": "'"${pubMod64}"'"}}'
+    protected='{"alg": "RS256", "kid": "'"${ACCOUNT_URL}"'", "url": "'"${finalize}"'", "nonce": "'"${nonce}"'"}'
+    protected64="$(printf '%s' "${protected}" | urlbase64)"
+
+    signed64="$(printf '%s' "${protected64}.${payload64}" | openssl dgst -sha256 -sign "${accountKey}" | urlbase64)"
+    data='{"protected": "'"${protected64}"'", "payload": "'"${payload64}"'", "signature": "'"${signed64}"'"}'
+
+    result="$(http_request POST "${finalize}" "${data}" | clean_json | get_json_string_value certificate)"
+
+    crt="$(http_request GET "${result}")"
 
     # Try to load the certificate to detect corruption
     echo " + Checking certificate..."
@@ -286,15 +303,15 @@ _issue_domain() {
 
     _generate_account_key "${accountkey}"
     _register_account "${accountkey}"
-    result="$(_new_order "${accountkey}")"
-    _build_deploy_args "${result}"
+    accountkeyresult="$(_new_order "${accountkey}")"
+    _build_deploy_args "${accountkeyresult}"
     _deploy_challenge
     _validate_pending_challenge "${accountkey}"
     _clean_challenge
 
-#    _generate_private_key "${privatekey}"
-#    _generate_csr "${privatekey}" "${csr}"
-#    _sign_csr "$(< "${csr}")" "${result}" 3>"${crt_path}"
+    _generate_private_key "${privatekey}"
+    _generate_csr "${privatekey}" "${csr}"
+    _sign_csr "$(< "${csr}")" "$(echo ${accountkeyresult} | clean_json)" "${accountkey}" 3>"${crt_path}"
 
     echo "${timestamp}"
 }
