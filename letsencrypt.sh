@@ -313,6 +313,22 @@ _issue_domain() {
     _generate_csr "${privatekey}" "${csr}"
     _sign_csr "$(< "${csr}")" "$(echo ${accountkeyresult} | clean_json)" "${accountkey}" 3>"${crt_path}"
 
+    tmpcert="$(_mktemp)"
+    tmpchain="$(_mktemp)"
+    awk '{print >out}; /----END CERTIFICATE-----/{out=tmpchain}' out="${tmpcert}" tmpchain="${tmpchain}" "${CERTDIR}/cert-${timestamp}.pem"
+    mv "${CERTDIR}/cert-${timestamp}.pem" "${CERTDIR}/fullchain-${timestamp}.pem"
+    cat "${tmpcert}" > "${CERTDIR}/cert-${timestamp}.pem"
+    cat "${tmpchain}" > "${CERTDIR}/chain-${timestamp}.pem"
+    rm "${tmpcert}" "${tmpchain}"
+
+    # Update symlinks
+    [[ "${privatekey}" = "privkey.pem" ]] || ln -sf "privkey-${timestamp}.pem" "${CERTDIR}/privkey.pem"
+
+    ln -sf "chain-${timestamp}.pem" "${CERTDIR}/chain.pem"
+    ln -sf "fullchain-${timestamp}.pem" "${CERTDIR}/fullchain.pem"
+    ln -sf "cert-${timestamp}.csr" "${CERTDIR}/cert.csr"
+    ln -sf "cert-${timestamp}.pem" "${CERTDIR}/cert.pem"
+
     echo "${timestamp}"
 }
 
