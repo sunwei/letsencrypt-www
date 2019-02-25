@@ -1,4 +1,4 @@
 language: bash
 
 script:
-    - make test
+    - make tests
