@@ -29,16 +29,16 @@ ssl_print_in_text_form() {
   openssl x509 -text
 }
 
-get_rsa_publicExponent() {
+ssl_get_rsa_publicExponent() {
   openssl rsa -in "${1}" -noout -text | awk '/publicExponent/ {print $2}'
 }
 
-get_rsa_pubMod64() {
+ssl_get_rsa_pubMod64() {
   openssl rsa -in "${1}" -noout -modulus | cut -d'=' -f2
 }
 
-sign_data_with_cert() {
-  openssl dgst -sha256 -sign "${1}" "${2}"
+ssl_sign_data_with_cert() {
+  openssl dgst -sha256 -sign "${1}"
 }
 
 get_data_binary() {

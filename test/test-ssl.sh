@@ -57,6 +57,24 @@ teardown() {
 subjectAltName=DNS:letsencryptwww.com"
 }
 
+@test 'Should get public exponent from rsa file' {
+  ssl_generate_rsa_2048 "${_TMP_FILE}"
+  run ssl_get_rsa_publicExponent "${_TMP_FILE}"
+  assert_output 65537
+}
+
+@test 'Should get public module from rsa file' {
+  ssl_generate_rsa_2048 "${_TMP_FILE}"
+  run ssl_get_rsa_pubMod64 "${_TMP_FILE}"
+  assert_success
+}
+
+@test 'Should sign data with private key' {
+  ssl_generate_rsa_2048 "${_TMP_KEY}"
+  result=$(echo "test data" | ssl_sign_data_with_cert "${_TMP_KEY}" | ssl_base64_encrypt)
+  assert [ ! -z "${result}" ]
+}
+
 #@test 'Should generate rsa with private key' {
 #  ssl_generate_rsa_2048 "${_TMP_KEY}"
 #  run generate_csr "${_TMP_KEY}" "${_TMP_FILE}"
