@@ -46,8 +46,19 @@ teardown() {
   assert_success
 }
 
-@test 'Should generate rsa with private key' {
-  ssl_generate_rsa_2048 "${_TMP_KEY}"
-  run generate_csr "${_TMP_KEY}" "${_TMP_FILE}"
-  assert [ -s "${_TMP_FILE}" ]
+@test 'Should generate subject with domain' {
+  run ssl_generate_subject_with_domain "letsencryptwww.com"
+  assert_output "/CN=letsencryptwww.com/"
 }
+
+@test 'Should generate SAN with domain' {
+  run ssl_generate_san_with_domain "letsencryptwww.com"
+  assert_output "[SAN]
+subjectAltName=DNS:letsencryptwww.com"
+}
+
+#@test 'Should generate rsa with private key' {
+#  ssl_generate_rsa_2048 "${_TMP_KEY}"
+#  run generate_csr "${_TMP_KEY}" "${_TMP_FILE}"
+#  assert [ -s "${_TMP_FILE}" ]
+#}

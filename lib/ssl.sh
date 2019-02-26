@@ -17,28 +17,16 @@ ssl_generate_rsa_2048() {
   openssl genrsa -out "${1}" 2048
 }
 
+ssl_generate_subject_with_domain() {
+  printf "/CN=%s/" ${1}
+}
+
+ssl_generate_san_with_domain() {
+  printf "[SAN]\nsubjectAltName=DNS:%s" ${1}
+}
+
 ssl_print_in_text_form() {
   openssl x509 -text
-}
-
-add_config_to_csr() {
-  <<<"${1}" openssl req -config "${2}" -reqexts SAN
-}
-
-add_sub_to_csr() {
-  <<<"${1}" openssl req -subj "${2}"
-}
-
-add_extension_to_csr() {
-  openssl req -reqexts SAN
-}
-
-generate_csr() {
-  openssl req -new -sha256 -key "${1}" -out "${2}"
-}
-
-generate_csr_der() {
-  <<<"${1}" openssl req -outform DER
 }
 
 get_rsa_publicExponent() {
@@ -55,4 +43,12 @@ sign_data_with_cert() {
 
 get_data_binary() {
   openssl dgst -sha256 -binary "${1}"
+}
+
+generate_csr() {
+  openssl req -new -sha256 -key "${1}" -out "${2}"
+}
+
+generate_csr_der() {
+  <<<"${1}" openssl req -outform DER
 }
