@@ -14,17 +14,24 @@ teardown() {
   echo "tear down from formatter tests..."
 }
 
+@test 'Should exit 0 with formatter lib dependence check' {
+  run check_formatter_lib_dependence
+  assert_success
+}
+
 @test "Should remove json white space" {
-  clearValue=$(echo "${DUMMY_DATA_WS}" | rm_json_ws )
+  clearValue=$(echo "${DUMMY_DATA_WS}" | clean_json )
   assert_equal $(echo "${clearValue}") "${DUMMY_DATA}"
 }
 
 @test "Should encode data as urlbase64 without \n\r, +, =, /, " {
-  urlbase64=$(echo "${DUMMY_DATA}" | urlbase64 )
-  assert_equal $(echo "${urlbase64}") "eyJpZCI6ODMwOTk4Mywia2V5Ijp7Imt0eSI6IlJTQSJ9LCJjb250YWN0IjpbIm1haWx0bzptZUBzdW53ZWkueHl6Il0sInN0YXR1cyI6InZhbGlkIn0K"
+  urlbase64=$(echo "jpbIm1h+=/
+eHl6Il0s
+" | clen_base64_url )
+  assert_equal $(echo "${urlbase64}") "jpbIm1h-_~eHl6Il0s"
 }
 
-@test 'Should convert hex to binary string' {
-  binStr="$(printf '%x' 65537 | hex2bin | url )"
-  assert_equal $(echo "${binStr}") "AQAB"
-}
+#@test 'Should convert hex to binary string' {
+#  binStr="$(printf '%x' 65537 | hex2bin | clen_base64_url )"
+#  assert_equal $(echo "${binStr}") "AQAB"
+#}

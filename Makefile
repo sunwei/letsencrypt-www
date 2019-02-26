@@ -42,3 +42,9 @@ install-entr:
 # Run this file (with 'entr' installed) to watch all files and rerun tests on changes
 watch:
 	ls -d **/* | entr make tests
+
+test-ssl:
+	./test/libs/bats/bin/bats ./test/test-ssl.sh
+
+watch-ssl:
+	ls -d test/test-ssl.sh | entr make test-ssl
