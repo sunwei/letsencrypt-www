@@ -22,15 +22,19 @@ ssl_print_in_text_form() {
 }
 
 add_config_to_csr() {
-  <<<"${1}" openssl req -config "${2}"
+  <<<"${1}" openssl req -config "${2}" -reqexts SAN
 }
 
 add_sub_to_csr() {
   <<<"${1}" openssl req -subj "${2}"
 }
 
+add_extension_to_csr() {
+  openssl req -reqexts SAN
+}
+
 generate_csr() {
-  openssl req -new -sha256 -key "${1}" -out "${2}" -reqexts SAN
+  openssl req -new -sha256 -key "${1}" -out "${2}"
 }
 
 generate_csr_der() {
