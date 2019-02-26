@@ -75,6 +75,11 @@ subjectAltName=DNS:letsencryptwww.com"
   assert [ ! -z "${result}" ]
 }
 
+@test 'Should get data binary' {
+  result=$( echo "data abc" | ssl_get_data_binary | ssl_base64_encrypt )
+  assert_equal "${result}" "ufZNNBFqRhg2bWYpVZBvbyTAelREwnuITMuGsajFoUs="
+}
+
 #@test 'Should generate rsa with private key' {
 #  ssl_generate_rsa_2048 "${_TMP_KEY}"
 #  run generate_csr "${_TMP_KEY}" "${_TMP_FILE}"

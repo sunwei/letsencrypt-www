@@ -41,14 +41,18 @@ ssl_sign_data_with_cert() {
   openssl dgst -sha256 -sign "${1}"
 }
 
-get_data_binary() {
-  openssl dgst -sha256 -binary "${1}"
+ssl_get_data_binary() {
+  openssl dgst -sha256 -binary
 }
 
-generate_csr() {
+ssl_generate_config() {
+  :
+}
+
+ssl_convert_csr_der() {
+  openssl req -outform DER
+}
+
+ssl_generate_csr() {
   openssl req -new -sha256 -key "${1}" -out "${2}"
-}
-
-generate_csr_der() {
-  <<<"${1}" openssl req -outform DER
 }
