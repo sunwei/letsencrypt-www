@@ -14,7 +14,7 @@ teardown() {
 }
 
 @test 'Should exit 0 with http lib dependence check' {
-  run ssl_check_http_dependence
+  run http_check_lib_dependence
   assert_success
 }
 

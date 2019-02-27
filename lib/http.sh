@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-ssl_check_http_dependence() {
+http_check_lib_dependence() {
   command -v curl > /dev/null 2>&1 || ( echo "> curl required." && exit 1 )
   command -v mktemp > /dev/null 2>&1 || ( echo "> mktemp required." && exit 1 )
 }
@@ -19,7 +19,7 @@ _get_letsencrypt_www_version() {
 }
 
 _get_client_agent() {
-  "$(_get_letsencrypt_www_version) curl/$(_get_curl_version)"
+  echo "$(_get_letsencrypt_www_version) curl/$(_get_curl_version)"
 }
 
 http_get_content_type() {

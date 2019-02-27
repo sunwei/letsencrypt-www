@@ -15,7 +15,7 @@ teardown() {
 }
 
 @test 'Should exit 0 with formatter lib dependence check' {
-  run check_formatter_lib_dependence
+  run formatter_check_lib_dependence
   assert_success
 }
 
@@ -24,11 +24,11 @@ teardown() {
   assert_equal $(echo "${clearValue}") "${DUMMY_DATA}"
 }
 
-@test "Should encode data as urlbase64 without \n\r, +, =, /, " {
-  urlbase64=$(echo "jpbIm1h+=/
+@test "Should encode data as urlbase64 without \n\r, +, /, " {
+  urlbase64=$(echo "jpbIm1h+/
 eHl6Il0s
 " | clen_base64_url )
-  assert_equal $(echo "${urlbase64}") "jpbIm1h-_~eHl6Il0s"
+  assert_equal $(echo "${urlbase64}") "jpbIm1h-_eHl6Il0s"
 }
 
 #@test 'Should convert hex to binary string' {
