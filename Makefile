@@ -43,8 +43,8 @@ install-entr:
 watch:
 	ls -d **/* | entr make tests
 
-test-ssl:
-	./test/libs/bats/bin/bats ./test/test-ssl.sh
+test-http:
+	./test/libs/bats/bin/bats ./test/test-http.sh
 
-watch-ssl:
-	ls -d test/test-ssl.sh | entr make test-ssl
+watch-http:
+	ls -d test/test-http.sh | entr make test-http

@@ -15,11 +15,22 @@ _get_curl_version() {
 }
 
 _get_letsencrypt_www_version() {
-  "letsencrypt-www/${LEWWW_VERSION:-0.0.1}"
+  echo "letsencrypt-www/${LEWWW_VERSION:-0.0.1}"
 }
 
 _get_client_agent() {
   "$(_get_letsencrypt_www_version) curl/$(_get_curl_version)"
+}
+
+http_get_content_type() {
+  local contentType=
+
+  case "${1}" in
+    jose) contentType="Content-Type: application/jose+json";;
+    *) contentType="Content-Type: application/x-www-form-urlencoded";;
+  esac
+
+  echo "${contentType}"
 }
 
 _handle_response() {
@@ -33,17 +44,6 @@ _handle_response() {
     echo "Http problem: "${reqURI}" with method "${reqMethod}", http code is "${resCode}" "
     exit 1
   fi
-}
-
-http_get_content_type() {
-  local contentType=
-
-  case "${1}" in
-    jose) contentType="Content-Type: application/jose+json";;
-    *) contentType="Content-Type: application/x-www-form-urlencoded";;
-  esac
-
-  echo contentType
 }
 
 http_head() {

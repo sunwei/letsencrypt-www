@@ -16,9 +16,9 @@ teardown() {
   if [[ -f "${_TMP_FILE}" ]] 2>/dev/null; then
         rm "${_TMP_FILE}"
   fi
-#  if [[ -f "${_TMP_KEY}" ]] 2>/dev/null; then
-#        rm "${_TMP_KEY}"
-#  fi
+  if [[ -f "${_TMP_KEY}" ]] 2>/dev/null; then
+        rm "${_TMP_KEY}"
+  fi
 }
 
 @test 'Should exit 0 with ssl lib dependence check' {
