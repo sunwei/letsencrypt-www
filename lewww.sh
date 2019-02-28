@@ -122,9 +122,28 @@ new_order() {
   _CA_ORDER="$(_post_signed_request "${url}" "${accountRSA}" "${protected64}" "${payload64}")"
 }
 
+_get_thumb_print() {
+  local accountRSA="${1}"
+
+  local pubExponent64="$(printf '%x' "$(ssl_get_rsa_publicExponent "${accountRSA}")" | hex2bin | _urlbase64)"
+  local pubMod64="$(ssl_get_rsa_pubMod64 "${accountRSA}" | hex2bin | _urlbase64)"
+
+  printf '{"e":"%s","kty":"RSA","n":"%s"}' "${pubExponent64}" "${pubMod64}" | ssl_get_data_binary | _urlbase64
+}
+
 build_authz() {
+  local accountRSA="${1}"
+
   local orderAuthz="$(echo ${_CA_ORDER} | get_json_array_value authorizations | rm_quotes | rm_space)"
-  echo "${orderAuthz}"
+  local response="$(http_get "${orderAuthz}" | clean_json)"
+  local identifier="$(echo "${response}" | get_json_dict_value identifier | get_json_string_value value)"
+  local challenge="$(echo "${response}" | get_json_array_value challenges | split_arr_mult_value | grep \"dns-01\")"
+  local challengeToken="$(echo "${challenge}" | get_json_string_value token)"
+  local challengeURL="$(echo "${challenge}" | get_json_string_value url)"
+  local thumbPrint="$(_get_thumb_print "${accountRSA}")"
+
+  local keyAuthHook="$(printf '%s' "${challengeToken}.${thumbPrint}" | ssl_get_data_binary | _urlbase64)"
+
 }
 
 main() {
@@ -140,7 +159,7 @@ main() {
 
     reg_account "${accountRSA}"
     new_order "${accountRSA}"
-    build_authz
+    build_authz "${accountRSA}"
 
 
     echo "${timestamp}"

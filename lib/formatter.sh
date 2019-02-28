@@ -34,6 +34,10 @@ clean_json() {
   -e 's/ \]/]/g'
 }
 
+split_arr_mult_value() {
+  _sed -e 's/\}(,(\{))/}\'$'\n''\2/g'
+}
+
 clen_base64_url() {
   rm_new_line | _sed -e 's:=*$::g' -e 'y:+/:-_:'
 }
