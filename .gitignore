@@ -5,5 +5,5 @@
 *.ali
 
 .idea
-
 /test/libs/*
+/cert/*

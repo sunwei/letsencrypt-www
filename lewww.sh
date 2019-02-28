@@ -1,14 +1,17 @@
 #!/bin/bash
 set -e
 
-BASE_DIR=$(dirname $0)
+source "lib/json.sh"
+source "lib/formatter.sh"
+source "lib/ssl.sh"
+source "lib/http.sh"
 
-source "json.sh"
-source "formatter.sh"
-source "ssl.sh"
-source "http.sh"
+check_dependence() {
+  formatter_check_lib_dependence && ssl_check_lib_dependence && http_check_lib_dependence
+}
 
-formatter_check_lib_dependence && ssl_check_lib_dependence && http_check_lib_dependence
+FQDN=
+CERTDIR="./cert"
 
 _CA="https://acme-"${LEWWW_ENV:-staging-}"v02.api.letsencrypt.org/directory"
 _CA_URLS=
@@ -92,3 +95,21 @@ reg_account() {
 
   echo "$(http_post "$(_get_url_by_name newAccount)" "${data}")"
 }
+
+main() {
+    FQDN="${1}"
+
+    local timestamp="$(date +%s)"
+
+    check_dependence
+    init_ca_config
+
+    accountRSA="${CERTDIR}/account-key-${timestamp}.pem"
+
+    ssl_generate_rsa_2048 "${accountRSA}"
+    reg_account "${accountRSA}"
+
+    echo "${timestamp}"
+}
+
+main "${@-}"

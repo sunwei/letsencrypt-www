@@ -48,3 +48,9 @@ test-http:
 
 watch-http:
 	ls -d test/test-http.sh | entr make test-http
+
+test-lev2:
+	./test/libs/bats/bin/bats ./test/test-letsencrypt-v2.sh
+
+watch-lev2:
+	ls -d test/test-letsencrypt-v2.sh | entr make test-lev2
