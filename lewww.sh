@@ -122,6 +122,11 @@ new_order() {
   _CA_ORDER="$(_post_signed_request "${url}" "${accountRSA}" "${protected64}" "${payload64}")"
 }
 
+build_authz() {
+  local orderAuthz="$(echo ${_CA_ORDER} | get_json_array_value authorizations | rm_quotes | rm_space)"
+  echo "${orderAuthz}"
+}
+
 main() {
     FQDN="${1}"
 
@@ -135,6 +140,8 @@ main() {
 
     reg_account "${accountRSA}"
     new_order "${accountRSA}"
+    build_authz
+
 
     echo "${timestamp}"
 }

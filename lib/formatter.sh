@@ -19,6 +19,10 @@ rm_new_line() {
   tr -d '\n\r'
 }
 
+rm_quotes() {
+  _sed -e 's/\"(.*)".*/\1/'
+}
+
 clean_json() {
   rm_new_line | \
   _sed -e 's/ +/ /g' \
@@ -34,7 +38,7 @@ clen_base64_url() {
   rm_new_line | _sed -e 's:=*$::g' -e 'y:+/:-_:'
 }
 
-_rm_space() {
+rm_space() {
   _sed -e 's/[[:space:]]//g'
 }
 
@@ -47,5 +51,5 @@ _convert_to_hex() {
 }
 
 hex2bin() {
-  printf -- "$(cat | _rm_space | _ensure_digital | _convert_to_hex)"
+  printf -- "$(cat | rm_space | _ensure_digital | _convert_to_hex)"
 }
