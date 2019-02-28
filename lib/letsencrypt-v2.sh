@@ -37,12 +37,22 @@ _get_rsa_pub_mode64() {
 }
 
 _get_jws() {
-  local pubExponent64="${1}"
-  local pubMod64="${2}"
-  local url="${3}"
-  local nonce="${4}"
+  local accountRSA="${1}"
+
+  local pubExponent64="$(printf '%x' "$(ssl_get_rsa_publicExponent "${accountRSA}")" | hex2bin | _urlbase64)"
+  local pubMod64="$(ssl_get_rsa_pubMod64 "${accountRSA}" | hex2bin | _urlbase64)"
+  local nonce="$(new_nonce)"
+  local url="$(_get_url_by_name newAccount)"
 
   echo '{"alg": "RS256", "jwk": {"e": "'"${pubExponent64}"'", "kty": "RSA", "n": "'"${pubMod64}"'"}, "url": "'"${url}"'", "nonce": "'"${nonce}"'"}'
+}
+
+_get_jwt() {
+  local accountURL="${1}"
+  local url="${2}"
+  local nonce="${3}"
+
+  echo '{"alg": "RS256", "kid": "'"${accountURL}"'", "url": "'"${url}"'", "nonce": "'"${nonce}"'"}'
 }
 
 new_nonce() {
@@ -55,17 +65,21 @@ generate_payload() {
   echo '{"contact":["mailto:'"${email}"'"], "termsOfServiceAgreed": true}'
 }
 
+get_signed64() {
+  local accountRSA="${1}"
+  local protected64="${2}"
+  local payload64="${3}"
+
+  echo "$(printf '%s' "${protected64}.${payload64}" | ssl_sign_data_with_cert "${accountRSA}" | _urlbase64)"
+}
+
 reg_account() {
   local accountRSA="${1}"
-  local pubExponent64="$(printf '%x' "$(ssl_get_rsa_publicExponent "${accountRSA}")" | hex2bin | _urlbase64)"
-  local pubMod64="$(ssl_get_rsa_pubMod64 "${accountRSA}" | hex2bin | _urlbase64)"
-  local nonce="$(new_nonce)"
 
-  local protected64="$(printf '%s' "$(_get_jws "${pubExponent64}" "${pubMod64}" "$(_get_url_by_name newAccount)" "${nonce}")" | _urlbase64)"
+  local protected64="$(printf '%s' "$(_get_jws "${accountRSA}")" | _urlbase64)"
   local payload64="$(printf '%s' "$(generate_payload me@sunwei.xyz)" | _urlbase64)"
 
-
-  local signed64="$(printf '%s' "${protected64}.${payload64}" | ssl_sign_data_with_cert "${accountRSA}" | _urlbase64)"
+  local signed64=$(get_signed64 "${accountRSA}" "${protected64}" "${payload64}")
   local data='{"protected": "'"${protected64}"'", "payload": "'"${payload64}"'", "signature": "'"${signed64}"'"}'
 
   echo "$(http_post "$(_get_url_by_name newAccount)" "${data}")"
@@ -74,7 +88,7 @@ reg_account() {
 init_ca_config
 
 accountkey="/tmp/account-key-122222.pem"
-#ssl_generate_rsa_2048 "${accountkey}"
+ssl_generate_rsa_2048 "${accountkey}"
 reg_account "${accountkey}"
 
 #
