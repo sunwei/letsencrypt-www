@@ -92,26 +92,3 @@ reg_account() {
 
   echo "$(http_post "$(_get_url_by_name newAccount)" "${data}")"
 }
-
-init_ca_config
-
-accountkey="/tmp/account-key-122222.pem"
-ssl_generate_rsa_2048 "${accountkey}"
-reg_account "${accountkey}"
-
-#
-#reg_account() {
-#
-#    signed64="$(printf '%s' "${protected64}.${payload64}" | openssl dgst -sha256 -sign "${accountKey}" | urlbase64)"
-#    data='{"protected": "'"${protected64}"'", "payload": "'"${payload64}"'", "signature": "'"${signed64}"'"}'
-#
-#    http_request POST "${CA_NEW_ACCOUNT}" "${data}" > "${ACCOUNT_KEY_JSON}"
-#
-#    if [[ -e "${ACCOUNT_KEY_JSON}" ]]; then
-#        ACCOUNT_ID="$(cat "${ACCOUNT_KEY_JSON}" | get_json_int_value id)"
-#        CA_ACCOUNT=${CA_NEW_ACCOUNT/new-acct/acct}
-#        ACCOUNT_URL="${CA_ACCOUNT}/${ACCOUNT_ID}"
-#    fi
-#
-#
-#}
