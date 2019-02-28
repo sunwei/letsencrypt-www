@@ -73,6 +73,14 @@ get_signed64() {
   echo "$(printf '%s' "${protected64}.${payload64}" | ssl_sign_data_with_cert "${accountRSA}" | _urlbase64)"
 }
 
+get_data_json() {
+  local protected64="${1}"
+  local payload64="${2}"
+  local signed64="${3}"
+
+  echo '{"protected": "'"${protected64}"'", "payload": "'"${payload64}"'", "signature": "'"${signed64}"'"}'
+}
+
 reg_account() {
   local accountRSA="${1}"
 
@@ -80,7 +88,7 @@ reg_account() {
   local payload64="$(printf '%s' "$(generate_payload me@sunwei.xyz)" | _urlbase64)"
 
   local signed64=$(get_signed64 "${accountRSA}" "${protected64}" "${payload64}")
-  local data='{"protected": "'"${protected64}"'", "payload": "'"${payload64}"'", "signature": "'"${signed64}"'"}'
+  local data=$(get_data_json "${protected64}" "${payload64}" "${signed64}")
 
   echo "$(http_post "$(_get_url_by_name newAccount)" "${data}")"
 }
