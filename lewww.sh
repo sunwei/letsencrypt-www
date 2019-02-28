@@ -15,6 +15,8 @@ CERTDIR="./cert"
 
 _CA="https://acme-"${LEWWW_ENV:-staging-}"v02.api.letsencrypt.org/directory"
 _CA_URLS=
+_CA_ACCOUNT=
+_CA_ORDER=
 
 init_ca_config() {
   _CA_URLS=$(http_get "${_CA}")
@@ -39,33 +41,8 @@ _get_rsa_pub_mode64() {
   ssl_get_rsa_pubMod64 "${accountRSA}" | hex2bin | _urlbase64
 }
 
-_get_jws() {
-  local accountRSA="${1}"
-
-  local pubExponent64="$(printf '%x' "$(ssl_get_rsa_publicExponent "${accountRSA}")" | hex2bin | _urlbase64)"
-  local pubMod64="$(ssl_get_rsa_pubMod64 "${accountRSA}" | hex2bin | _urlbase64)"
-  local nonce="$(new_nonce)"
-  local url="$(_get_url_by_name newAccount)"
-
-  echo '{"alg": "RS256", "jwk": {"e": "'"${pubExponent64}"'", "kty": "RSA", "n": "'"${pubMod64}"'"}, "url": "'"${url}"'", "nonce": "'"${nonce}"'"}'
-}
-
-_get_jwt() {
-  local accountURL="${1}"
-  local url="${2}"
-  local nonce="${3}"
-
-  echo '{"alg": "RS256", "kid": "'"${accountURL}"'", "url": "'"${url}"'", "nonce": "'"${nonce}"'"}'
-}
-
 new_nonce() {
   http_head $(_get_url_by_name newNonce) | grep -i ^Replay-Nonce: | awk -F ': ' '{print $2}' | rm_new_line
-}
-
-generate_payload() {
-  local email="${1}"
-
-  echo '{"contact":["mailto:'"${email}"'"], "termsOfServiceAgreed": true}'
 }
 
 get_signed64() {
@@ -84,16 +61,65 @@ get_data_json() {
   echo '{"protected": "'"${protected64}"'", "payload": "'"${payload64}"'", "signature": "'"${signed64}"'"}'
 }
 
-reg_account() {
+_get_jws() {
   local accountRSA="${1}"
 
-  local protected64="$(printf '%s' "$(_get_jws "${accountRSA}")" | _urlbase64)"
-  local payload64="$(printf '%s' "$(generate_payload me@sunwei.xyz)" | _urlbase64)"
+  local pubExponent64="$(printf '%x' "$(ssl_get_rsa_publicExponent "${accountRSA}")" | hex2bin | _urlbase64)"
+  local pubMod64="$(ssl_get_rsa_pubMod64 "${accountRSA}" | hex2bin | _urlbase64)"
+  local nonce="$(new_nonce)"
+  local url="$(_get_url_by_name newAccount)"
+
+  echo '{"alg": "RS256", "jwk": {"e": "'"${pubExponent64}"'", "kty": "RSA", "n": "'"${pubMod64}"'"}, "url": "'"${url}"'", "nonce": "'"${nonce}"'"}'
+}
+
+_post_signed_request() {
+  local url="${1}"
+  local accountRSA="${2}"
+  local protected64="${3}"
+  local payload64="${4}"
 
   local signed64=$(get_signed64 "${accountRSA}" "${protected64}" "${payload64}")
   local data=$(get_data_json "${protected64}" "${payload64}" "${signed64}")
 
-  echo "$(http_post "$(_get_url_by_name newAccount)" "${data}")"
+  http_post "${url}" "${data}"
+}
+
+reg_account() {
+  local accountRSA="${1}"
+  local url="$(_get_url_by_name newAccount)"
+
+  local payload='{"contact":["mailto:me@sunwei.xyz"], "termsOfServiceAgreed": true}'
+  local payload64="$(printf '%s' "${payload}" | _urlbase64)"
+  local protected64="$(printf '%s' "$(_get_jws "${accountRSA}")" | _urlbase64)"
+
+  _CA_ACCOUNT="$(_post_signed_request "${url}" "${accountRSA}" "${protected64}" "${payload64}")"
+}
+
+_get_account_url() {
+  local accountID="$(echo "${_CA_ACCOUNT}" | get_json_int_value id)"
+  local newAccountURL="$(_get_url_by_name newAccount)"
+  local accountBase=${newAccountURL/new-acct/acct}
+
+  echo "${accountBase}/${accountID}"
+}
+
+_get_jwt() {
+  local url="${1}"
+  local accountURL="$(_get_account_url)"
+  local nonce="$(new_nonce)"
+
+  echo '{"alg": "RS256", "kid": "'"${accountURL}"'", "url": "'"${url}"'", "nonce": "'"${nonce}"'"}'
+}
+
+new_order() {
+  local accountRSA="${1}"
+  local url="$(_get_url_by_name newOrder)"
+
+  local payload='{"identifiers": [{"type": "dns", "value": "'"${FQDN}"'"}]}'
+  local payload64=$(printf '%s' "${payload}" | _urlbase64)
+  local protected64="$(printf '%s' "$(_get_jwt "${url}")" | _urlbase64)"
+
+  _CA_ORDER="$(_post_signed_request "${url}" "${accountRSA}" "${protected64}" "${payload64}")"
 }
 
 main() {
@@ -105,9 +131,10 @@ main() {
     init_ca_config
 
     accountRSA="${CERTDIR}/account-key-${timestamp}.pem"
-
     ssl_generate_rsa_2048 "${accountRSA}"
+
     reg_account "${accountRSA}"
+    new_order "${accountRSA}"
 
     echo "${timestamp}"
 }

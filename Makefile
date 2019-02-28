@@ -39,7 +39,6 @@ install-entr:
 	&& ./configure && make test && make install \
 	&& rm -rf tmp \
 
-# Run this file (with 'entr' installed) to watch all files and rerun tests on changes
 watch:
 	ls -d **/* | entr make tests
 
@@ -54,3 +53,6 @@ test-lev2:
 
 watch-lev2:
 	ls -d test/test-letsencrypt-v2.sh | entr make test-lev2
+
+clean-cert:
+	rm -rf ./cert/*
