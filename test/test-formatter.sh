@@ -24,6 +24,11 @@ teardown() {
   assert_equal $(echo "${clearValue}") "${DUMMY_DATA}"
 }
 
+@test "Should remove quotes of string" {
+  clearValue=$(echo '"this is string"' | rm_quotes )
+  assert_equal "${clearValue}" "this is string"
+}
+
 @test "Should encode data as urlbase64 without \n\r, +, /, " {
   urlbase64=$(echo "jpbIm1h+/
 eHl6Il0s
