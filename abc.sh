@@ -1,17 +1,11 @@
 #!/bin/bash
 set -e
 
-arr="a","b"
-arr1=("a", "b")
-array=("A" "B" "ElementC" "ElementE")
+count="$(echo "string.with.dots." | grep -o "\." | wc -l)"
 
-echo ${array}
+if [[ "${count}" -gt 1 ]]; then
+  echo "large"
+  echo "$(echo "a.b.c" | cut -d'.' -f1)"
+fi
 
-for uri in ${arr[@]}; do
-  echo "${uri}"
-done
-
-for uri in "${array[@]}"; do
-  echo "${uri}"
-done
-
+echo $count
