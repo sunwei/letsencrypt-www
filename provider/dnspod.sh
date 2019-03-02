@@ -5,6 +5,7 @@ source 'lib/json.sh'
 source 'lib/formatter.sh'
 source 'lib/http.sh'
 source 'lib/domain.sh'
+source 'lib/utils.sh'
 
 DNSPod_ID=83717
 DNSPod_TOKEN=32ff6aa5112b7bdaf64f48763c4788c4
@@ -31,7 +32,7 @@ _init_domain() {
 }
 
 create_txt_record() {
-  local fullDomain="${1}" challengeToken="${2}" recordValue="${3}"
+  local fullDomain="${1}" recordValue="${2}"
   local uri="https://dnsapi.cn/Record.Create"
   _init_domain "${fullDomain}"
 
@@ -41,11 +42,13 @@ create_txt_record() {
   if [[ "$(_get_res_code "${res}")" = 1 ]]; then
     DNSPod_RECORD_ID="$(echo "${res}" | get_json_dict_value record | get_json_string_value id )"
     echo "${DNSPod_RECORD_ID}"
+  else
+    exit_err "${res}"
   fi
 }
 
 find_txt_record() {
-  local fullDomain="${1}" challengeToken="${2}" recordValue="${3}"
+  local fullDomain="${1}"
   local uri="https://dnsapi.cn/Record.List"
   _init_domain "${fullDomain}"
 

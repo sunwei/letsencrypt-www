@@ -144,6 +144,25 @@ build_authz() {
 
   local keyAuthHook="$(printf '%s' "${challengeToken}.${thumbPrint}" | ssl_get_data_binary | _urlbase64)"
 
+#  echo "${identifier} ${challengeToken} ${keyAuthHook}"
+  echo "${identifier} ${keyAuthHook}"
+}
+
+
+DNSPod_HOOK="./provider/dnspod.sh"
+DNSPod_RECORD_ID=
+
+deploy_challenge() {
+  local args="${1}"
+  DNSPod_RECORD_ID="$("${DNSPod_HOOK}" "create_txt_record" ${args})"
+}
+
+check_challenge_status() {
+  local deployStatus=False
+  while [[ deployStatus = False ]]; do
+    sleep 1
+    deployStatus="$("${DNSPod_HOOK}" "find_txt_record" ${FQDN})"
+  done
 }
 
 main() {
@@ -151,15 +170,23 @@ main() {
 
     local timestamp="$(date +%s)"
 
+    echo "> Init environment..."
     check_dependence
     init_ca_config
 
+    echo "> Apply Let's Encrypt account..."
     accountRSA="${CERTDIR}/account-key-${timestamp}.pem"
     ssl_generate_rsa_2048 "${accountRSA}"
-
     reg_account "${accountRSA}"
+
+    echo "> Start new order..."
     new_order "${accountRSA}"
-    build_authz "${accountRSA}"
+
+    echo "> Deploy dns-01 challenge to provider DNSPod..."
+    local challengeArgs="$(build_authz "${accountRSA}")"
+    deploy_challenge "${challengeArgs}"
+    check_challenge_status
+
 
 
     echo "${timestamp}"
