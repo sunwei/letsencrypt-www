@@ -70,9 +70,9 @@ rm_txt_record() {
   local res="$(http_post "${uri}" "${data}" "$(http_get_content_type)" | clean_json)"
 
   if [[ "$(_get_res_code "${res}")" = 1 ]]; then
-    echo True
+    echo " + TXT record is clean"
   else
-    echo False
+    echo " - TXT record not clean"
   fi
 }
 

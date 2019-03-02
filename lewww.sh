@@ -136,16 +136,17 @@ build_authz() {
 
   local orderAuthz="$(echo ${_CA_ORDER} | get_json_array_value authorizations | rm_quotes | rm_space)"
   local response="$(http_get "${orderAuthz}" | clean_json)"
+
   local identifier="$(echo "${response}" | get_json_dict_value identifier | get_json_string_value value)"
+
   local challenge="$(echo "${response}" | get_json_array_value challenges | split_arr_mult_value | grep \"dns-01\")"
   local challengeToken="$(echo "${challenge}" | get_json_string_value token)"
   local challengeURL="$(echo "${challenge}" | get_json_string_value url)"
-  local thumbPrint="$(_get_thumb_print "${accountRSA}")"
 
+  local thumbPrint="$(_get_thumb_print "${accountRSA}")"
   local keyAuthHook="$(printf '%s' "${challengeToken}.${thumbPrint}" | ssl_get_data_binary | _urlbase64)"
 
-#  echo "${identifier} ${challengeToken} ${keyAuthHook}"
-  echo "${identifier} ${keyAuthHook}"
+  printf '{"identifier":"%s","token":"%s","keyAuth":"%s","url":"%s"}' "${identifier}" "${challengeToken}" "${keyAuthHook}" "${challengeURL}"
 }
 
 
@@ -153,16 +154,51 @@ DNSPod_HOOK="./provider/dnspod.sh"
 DNSPod_RECORD_ID=
 
 deploy_challenge() {
-  local args="${1}"
-  DNSPod_RECORD_ID="$("${DNSPod_HOOK}" "create_txt_record" ${args})"
+  local identifier="$(echo "${1}" | get_json_string_value identifier)"
+  local keyAuth="$(echo "${1}" | get_json_string_value keyAuth)"
+  DNSPod_RECORD_ID="$("${DNSPod_HOOK}" "create_txt_record" ${identifier} ${keyAuth})"
+}
+
+clean_challenge() {
+  local identifier="$(echo "${1}" | get_json_string_value identifier)"
+  "${DNSPod_HOOK}" "rm_txt_record" ${identifier} ${DNSPod_RECORD_ID}
 }
 
 check_challenge_status() {
+  local identifier="$(echo "${1}" | get_json_string_value identifier)"
+
   local deployStatus=False
-  while [[ deployStatus = False ]]; do
-    sleep 1
-    deployStatus="$("${DNSPod_HOOK}" "find_txt_record" ${FQDN})"
+  while [[ "${deployStatus}" = False ]]; do
+    sleep 5
+    deployStatus="$("${DNSPod_HOOK}" "find_txt_record" ${identifier})"
   done
+}
+
+valid_challenge() {
+  local accountRSA="${1}"
+  local challengeArgs="${2}"
+
+  local keyAuth="$(echo "${challengeArgs}" | get_json_string_value keyAuth)"
+  local url="$(echo "${challengeArgs}" | get_json_string_value url)"
+
+  local payload='{"keyAuthorization": "'"${keyAuth}"'"}'
+  local payload64=$(printf '%s' "${payload}" | _urlbase64)
+  local protected64="$(printf '%s' "$(_get_jwt "${url}")" | _urlbase64)"
+
+  result="$(_post_signed_request "${url}" "${accountRSA}" "${protected64}" "${payload64}" | clean_json)"
+  reqSta="$(printf '%s\n' "${result}" | get_json_string_value status)"
+
+  while [[ "${reqSta}" = "pending" ]]; do
+      sleep 1
+      result="$(http_get "${url}")"
+      reqSta="$(printf '%s\n' "${result}" | get_json_string_value status)"
+  done
+
+  if [[ "${reqSta}" = "valid" ]]; then
+      echo " + Challenge is valid!"
+  else
+      echo " - Challenge failed!"
+  fi
 }
 
 main() {
@@ -175,7 +211,7 @@ main() {
     init_ca_config
 
     echo "> Apply Let's Encrypt account..."
-    accountRSA="${CERTDIR}/account-key-${timestamp}.pem"
+    local accountRSA="${CERTDIR}/account-key-${timestamp}.pem"
     ssl_generate_rsa_2048 "${accountRSA}"
     reg_account "${accountRSA}"
 
@@ -185,9 +221,12 @@ main() {
     echo "> Deploy dns-01 challenge to provider DNSPod..."
     local challengeArgs="$(build_authz "${accountRSA}")"
     deploy_challenge "${challengeArgs}"
-    check_challenge_status
+    check_challenge_status "${challengeArgs}"
+    valid_challenge "${accountRSA}" "${challengeArgs}"
+    clean_challenge "${challengeArgs}"
 
-
+    echo "> Deploy dns-01 challenge to provider DNSPod..."
+    local privateKey="${CERTDIR}/private-${timestamp}.pem"
 
     echo "${timestamp}"
 }
