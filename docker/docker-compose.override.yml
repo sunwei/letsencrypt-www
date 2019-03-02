@@ -1,7 +1,0 @@
-version: '3.2'
-
-services:
-  letsencrypt:
-    volumes:
-      - ./:/repo
-      - ./hooks:/usr/local/bin/dehydrated/hooks
