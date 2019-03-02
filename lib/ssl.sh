@@ -9,6 +9,11 @@ ssl_get_location() {
   openssl version -d | cut -d\" -f2
 }
 
+ssl_get_conf() {
+  local sslPWD="$(ssl_get_location)"
+  echo "${sslPWD}/openssl.cnf"
+}
+
 ssl_base64_encrypt() {
   openssl base64 -e
 }

@@ -1,10 +1,14 @@
 #!/bin/bash
 set -e
+set -u
+set -o pipefail
+exec 3>&-
 
 source "lib/json.sh"
 source "lib/formatter.sh"
 source "lib/ssl.sh"
 source "lib/http.sh"
+source "lib/utils.sh"
 
 check_dependence() {
   formatter_check_lib_dependence && ssl_check_lib_dependence && http_check_lib_dependence
@@ -201,6 +205,48 @@ valid_challenge() {
   fi
 }
 
+generate_csr() {
+  local priKey="${1}" csr="${2}"
+  local subj="$(ssl_generate_subject_with_domain ${FQDN})"
+  local san="$(ssl_generate_san_with_domain ${FQDN})"
+
+  local tmpSSLCnf="$(mktemp)" #TODO REMOVE
+  cat "$(ssl_get_conf)" > "${tmpSSLCnf}"
+  echo "${san}" >> "${tmpSSLCnf}"
+
+  openssl req -new -sha256 -key "${priKey}" -out "${csr}" -subj "${subj}" -reqexts SAN -config "${tmpSSLCnf}"
+}
+
+_check_fd_3() {
+  if { true >&3; } 2>/dev/null; then
+      : # fd 3 looks OK
+  else
+      exit_err "_check_fd_3: FD 3 not open"
+  fi
+}
+
+sign_csr() {
+  _check_fd_3
+
+  local accountRSA="${1}" csr="${2}"
+  local finalize="$(echo "${_CA_ORDER}" | get_json_string_value finalize)"
+
+  local csr64="$( <<<"${csr}" openssl req -config "$(ssl_get_conf)" -outform DER | _urlbase64)"
+  local payload='{"csr": "'"${csr64}"'"}'
+  local payload64=$(printf '%s' "${payload}" | _urlbase64)
+  local protected64="$(printf '%s' "$(_get_jwt "${finalize}")" | _urlbase64)"
+
+  local result="$(_post_signed_request "${finalize}" "${accountRSA}" "${protected64}" "${payload64}" | clean_json)"
+  local certUrl="$(echo "${result}" | get_json_string_value certificate)"
+  local crt="$(http_get "${certUrl}")"
+
+  echo " + Checking certificate..."
+  ssl_print_in_text_form <<<"${crt}"
+
+  echo "${crt}" >&3
+  echo " + Done!"
+}
+
 main() {
     FQDN="${1}"
 
@@ -220,6 +266,7 @@ main() {
 
     echo "> Deploy dns-01 challenge to provider DNSPod..."
     local challengeArgs="$(build_authz "${accountRSA}")"
+
     deploy_challenge "${challengeArgs}"
     check_challenge_status "${challengeArgs}"
     valid_challenge "${accountRSA}" "${challengeArgs}"
@@ -227,6 +274,12 @@ main() {
 
     echo "> Deploy dns-01 challenge to provider DNSPod..."
     local privateKey="${CERTDIR}/private-${timestamp}.pem"
+    local csr="${CERTDIR}/${timestamp}.csr"
+    local crt="${CERTDIR}/cert-${timestamp}.pem"
+
+    ssl_generate_rsa_2048 "${privateKey}"
+    generate_csr "${privateKey}" "${csr}"
+    sign_csr "${accountRSA}" "$(< "${csr}")" 3>"${crt}"
 
     echo "${timestamp}"
 }
