@@ -1,6 +1,6 @@
 # Let's Encrypt WWW
 
-[![Build Status](https://travis-ci.org/sunzhongmou/letsencrypt.svg?branch=master)](https://travis-ci.org/sunzhongmou/letsencrypt)
+[![Build Status](https://travis-ci.org/sunwei/letsencrypt-www.svg?branch=master)](https://travis-ci.org/sunwei/letsencrypt-www)
 
 Implement with shell script, generate clean script for your requirement only. 
 
