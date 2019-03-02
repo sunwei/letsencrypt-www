@@ -14,6 +14,8 @@ check_dependence() {
   formatter_check_lib_dependence && ssl_check_lib_dependence && http_check_lib_dependence
 }
 
+BASE_DIR=$(dirname $0)
+
 FQDN=
 CERTDIR="./cert"
 
@@ -210,7 +212,7 @@ generate_csr() {
   local subj="$(ssl_generate_subject_with_domain ${FQDN})"
   local san="$(ssl_generate_san_with_domain ${FQDN})"
 
-  local tmpSSLCnf="$(mktemp)" #TODO REMOVE
+  local tmpSSLCnf="$(mk_tmp_file)" #TODO REMOVE
   cat "$(ssl_get_conf)" > "${tmpSSLCnf}"
   echo "${san}" >> "${tmpSSLCnf}"
 
@@ -241,10 +243,25 @@ sign_csr() {
   local crt="$(http_get "${certUrl}")"
 
   echo " + Checking certificate..."
-  ssl_print_in_text_form <<<"${crt}"
+#  ssl_print_in_text_form <<<"${crt}"
 
   echo "${crt}" >&3
   echo " + Done!"
+}
+
+produce_cert() {
+  local timestamp="${1}"
+  local tmpCert="$(mk_tmp_file)"
+  local tmpChain="$(mk_tmp_file)"
+
+  awk '{print >out}; /----END CERTIFICATE-----/{out=tmpChain}' out="${tmpCert}" tmpChain="${tmpChain}" "${CERTDIR}/cert-${timestamp}.pem"
+
+  mv "${CERTDIR}/cert-${timestamp}.pem" "${CERTDIR}/fullchain-${timestamp}.pem"
+
+  cat "${tmpCert}" > "${CERTDIR}/cert-${timestamp}.pem"
+  cat "${tmpChain}" > "${CERTDIR}/chain-${timestamp}.pem"
+
+  rm "${tmpCert}" "${tmpChain}"
 }
 
 main() {
@@ -281,7 +298,12 @@ main() {
     generate_csr "${privateKey}" "${csr}"
     sign_csr "${accountRSA}" "$(< "${csr}")" 3>"${crt}"
 
-    echo "${timestamp}"
+    echo "> Produce cert..."
+    produce_cert "${timestamp}"
+
+    echo "> Done, www domain "${FQDN}" cert at: "
+    echo "$( cd "${BASE_DIR}/${CERTDIR}" && pwd -P )"
+
 }
 
 main "${@-}"
