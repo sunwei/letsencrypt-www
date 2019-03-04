@@ -1,4 +1,4 @@
-# ![logo](./assets/logo.png)
+# ![logo](./assets/github.logo.png)
 
 # Let's Encrypt WWW 
 
