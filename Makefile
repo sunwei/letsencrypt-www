@@ -1,38 +1,21 @@
-fqdn ?= abc.fsky.top
-
-# SSL certs automation with LetsEncrypt
-
-build:
-	docker-compose build letsencrypt
+fqdn ?= jsoneditoronline.cn
 
 unlock:
 	./unlock.sh
 
-push: unlock
-	./docker-push.sh
+export-dnspod-env: unlock
+	source ./secrets/dnspod.env
 
-issue:
-	docker-compose -f docker-compose.yml run --rm \
-	-e FQDN=$(fqdn) letsencrypt
+clean-cert:
+	rm -rf ./cert/*
 
-shell:
-	docker-compose -f docker-compose.yml run --rm \
-	 -e FQDN=$(fqdn) letsencrypt \
-	/bin/bash
+update-submodule:
+	git submodule update --init --recursive
 
-install-tests-lib:
-	[[ ! -d "./test/libs" ]] \
-		&& echo "Create test lib directory..." \
-		&& mkdir -p "./test/libs" \
-		&& cd -P "./test/libs" && pwd \
-		&& git submodule add -f https://github.com/sstephenson/bats bats \
-		&& git submodule add -f https://github.com/ztombol/bats-support bats-support \
-		&& git submodule add -f https://github.com/ztombol/bats-assert bats-assert \
-
-tests:
+tests: update-submodule
 	./test/libs/bats/bin/bats ./test/*.sh
 
-install-entr:
+setup-dev:
 	mkdir tmp && cd tmp \
 	&& git clone https://github.com/clibs/entr.git \
 	&& cd entr \
@@ -42,11 +25,11 @@ install-entr:
 watch:
 	ls -d **/* | entr make tests
 
-test-domain:
-	./test/libs/bats/bin/bats ./test/test-domain.sh
-
-watch-domain:
-	ls -d test/test-domain.sh | entr make test-domain
-
-clean-cert:
-	rm -rf ./cert/*
+install-tests-lib:
+	[[ ! -d "./test/libs" ]] \
+		&& echo "Create test lib directory..." \
+		&& mkdir -p "./test/libs" \
+		&& cd -P "./test/libs" && pwd \
+		&& git submodule add -f https://github.com/sstephenson/bats bats \
+		&& git submodule add -f https://github.com/ztombol/bats-support bats-support \
+		&& git submodule add -f https://github.com/ztombol/bats-assert bats-assert
