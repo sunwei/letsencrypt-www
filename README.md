@@ -12,7 +12,7 @@ you can easily adjust the source code and fit your requirement, powered by **TDD
 
 
 ## Table of Contents
-- [OS Supported](#-operating-system-support)
+- [OS](#-operating-system-support)
 - [Install](#-install)
   - [Prerequisites](#prerequisites)
   - [Installing](#prerequisites)
@@ -40,10 +40,37 @@ you can easily adjust the source code and fit your requirement, powered by **TDD
 
 ## Operating System Support
 
-| MacOS | 
+| Darwin | 
 | :---------: | 
 | Yes |
 
+## Install
+
+### Prerequisites
+
+* [OpenSSL](https://www.openssl.org/source/)
+
+### Installing
+
+Option 1. From git master 
+
+```
+git clone git@github.com:sunwei/letsencrypt-www.git
+cd ./letsencrypt-www
+
+```
+
+Option 2. From release 
+
+```
+curl -OL  https://github.com/sunwei/letsencrypt-www/archive/v0.0.4.tar.gz
+tar -xvzf v0.0.4.tar.gz
+mv letsencrypt-www-0.0.4 letsencrypt-www
+cd ./letsencrypt-www
+
+```
+
+Check releases here: [GitHub letsencrypt-www releases](https://github.com/sunwei/letsencrypt-www/releases)
 
 ## Features
 
