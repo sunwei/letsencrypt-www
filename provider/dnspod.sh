@@ -7,8 +7,8 @@ source 'lib/http.sh'
 source 'lib/domain.sh'
 source 'lib/utils.sh'
 
-DNSPod_ID=83717
-DNSPod_TOKEN=32ff6aa5112b7bdaf64f48763c4788c4
+# Need export DNSPod env firstly
+
 _LOGIN_TOKEN="${DNSPod_ID},${DNSPod_TOKEN}"
 DNSPod_RECORD_ID=
 _DOMAIN=
