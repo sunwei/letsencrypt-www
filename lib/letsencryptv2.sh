@@ -42,7 +42,7 @@ _get_account_pubMod() {
 }
 
 _get_account_pubMod64() {
-  _get_account_pubMod | hex2bin | _urlbase64
+  _get_account_pubMod | hex2bin | urlbase64
 }
 
 _get_signed64() {
@@ -69,11 +69,11 @@ _get_account_url() {
 }
 
 _get_rsa_pub_exponent64() {
-  printf '%x' "$(ssl_get_rsa_publicExponent "${_CA_ACCOUNT_RSA}")" | hex2bin | _urlbase64
+  printf '%x' "$(ssl_get_rsa_publicExponent "${_CA_ACCOUNT_RSA}")" | hex2bin | urlbase64
 }
 
 _get_rsa_pub_mode64() {
-  ssl_get_rsa_pubMod64 "${_CA_ACCOUNT_RSA}" | hex2bin | _urlbase64
+  ssl_get_rsa_pubMod64 "${_CA_ACCOUNT_RSA}" | hex2bin | urlbase64
 }
 
 _post_signed_request() {
@@ -151,7 +151,7 @@ _build_authz() {
   local challengeURL="$(echo "${challenge}" | get_json_string_value url)"
 
   local thumbPrint="$(_get_thumb_print)"
-  local keyAuthHook="$(printf '%s' "${challengeToken}.${thumbPrint}" | ssl_get_data_binary | _urlbase64)"
+  local keyAuthHook="$(printf '%s' "${challengeToken}.${thumbPrint}" | ssl_get_data_binary | urlbase64)"
 
   printf '{"identifier":"%s","token":"%s","keyAuth":"%s","url":"%s"}' "${identifier}" "${challengeToken}" "${keyAuthHook}" "${challengeURL}"
 }
