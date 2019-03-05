@@ -61,3 +61,15 @@ ssl_convert_csr_der() {
 ssl_generate_csr() {
   openssl req -new -sha256 -key "${1}" -out "${2}"
 }
+
+ssl_generate_san_csr() {
+  local priKey="${1}" csr="${2}" domain="${3}"
+  local subj="$(ssl_generate_subject_with_domain ${domain})"
+  local san="$(ssl_generate_san_with_domain ${domain})"
+
+  local tmpSSLCnf="$(mktemp "/tmp/letsencrypt-www-san-XXXXXX")" #TODO REMOVE
+  cat "$(ssl_get_conf)" > "${tmpSSLCnf}"
+  echo "${san}" >> "${tmpSSLCnf}"
+
+  openssl req -new -sha256 -key "${priKey}" -out "${csr}" -subj "${subj}" -reqexts SAN -config "${tmpSSLCnf}"
+}

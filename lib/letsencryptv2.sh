@@ -14,6 +14,7 @@ _CA_URLS=
 _CA_ACCOUNT=
 _CA_ACCOUNT_RSA=
 _CA_ORDER=
+_CA_CHALLENGE_ARGS=
 _CA_TT="$(get_timestamp)"
 
 _check_dependence() {
@@ -153,7 +154,103 @@ _build_authz() {
   local thumbPrint="$(_get_thumb_print)"
   local keyAuthHook="$(printf '%s' "${challengeToken}.${thumbPrint}" | ssl_get_data_binary | urlbase64)"
 
-  printf '{"identifier":"%s","token":"%s","keyAuth":"%s","url":"%s"}' "${identifier}" "${challengeToken}" "${keyAuthHook}" "${challengeURL}"
+  _CA_CHALLENGE_ARGS="$(printf '{"identifier":"%s","token":"%s","keyAuth":"%s","url":"%s"}' "${identifier}" "${challengeToken}" "${keyAuthHook}" "${challengeURL}")"
+}
+
+DNSPod_RECORD_ID=
+lev2_deploy_challenge() {
+  local providerHook="${1}"
+
+  local identifier="$(echo "${_CA_CHALLENGE_ARGS}" | get_json_string_value identifier)"
+  local keyAuth="$(echo "${_CA_CHALLENGE_ARGS}" | get_json_string_value keyAuth)"
+  DNSPod_RECORD_ID="$("${providerHook}" "create_txt_record" ${identifier} ${keyAuth})"
+}
+
+lev2_clean_challenge() {
+  local providerHook="${1}"
+
+  local identifier="$(echo "${_CA_CHALLENGE_ARGS}" | get_json_string_value identifier)"
+  "${providerHook}" "rm_txt_record" ${identifier} ${DNSPod_RECORD_ID}
+}
+
+lev2_check_challenge_status() {
+  local providerHook="${1}"
+
+  local identifier="$(echo "${_CA_CHALLENGE_ARGS}" | get_json_string_value identifier)"
+
+  local deployStatus=False
+  while [[ "${deployStatus}" = False ]]; do
+    sleep 5
+    deployStatus="$("${providerHook}" "find_txt_record" ${identifier})"
+  done
+}
+
+lev2_valid_challenge() {
+  local accountRSA="${_CA_ACCOUNT_RSA}"
+  local challengeArgs="${_CA_CHALLENGE_ARGS}"
+
+  local keyAuth="$(echo "${challengeArgs}" | get_json_string_value keyAuth)"
+  local url="$(echo "${challengeArgs}" | get_json_string_value url)"
+
+  local payload='{"keyAuthorization": "'"${keyAuth}"'"}'
+  local payload64=$(printf '%s' "${payload}" | urlbase64)
+  local protected64="$(printf '%s' "$(_get_jwt "${url}")" | urlbase64)"
+
+  result="$(_post_signed_request "${url}" "${protected64}" "${payload64}" | clean_json)"
+  reqSta="$(printf '%s\n' "${result}" | get_json_string_value status)"
+
+  while [[ "${reqSta}" = "pending" ]]; do
+      sleep 1
+      result="$(http_get "${url}")"
+      reqSta="$(printf '%s\n' "${result}" | get_json_string_value status)"
+  done
+
+  if [[ "${reqSta}" = "valid" ]]; then
+      echo " + Challenge is valid!"
+  else
+      echo " - Challenge failed!"
+  fi
+}
+
+lev2_sign_csr() {
+  check_fd_3
+
+  local accountRSA="${_CA_ACCOUNT_RSA}" csr="${2}"
+  local finalize="$(echo "${_CA_ORDER}" | get_json_string_value finalize)"
+
+  local csr64="$( <<<"${csr}" openssl req -config "$(ssl_get_conf)" -outform DER | urlbase64)"
+  local payload='{"csr": "'"${csr64}"'"}'
+  local payload64=$(printf '%s' "${payload}" | urlbase64)
+  local protected64="$(printf '%s' "$(_get_jwt "${finalize}")" | urlbase64)"
+
+  local result="$(_post_signed_request "${finalize}" "${protected64}" "${payload64}" | clean_json)"
+  local certUrl="$(echo "${result}" | get_json_string_value certificate)"
+  local crt="$(http_get "${certUrl}")"
+
+  echo " + Checking certificate..."
+#  ssl_print_in_text_form <<<"${crt}"
+
+  echo "${crt}" >&3
+  echo " + Done!"
+}
+
+lev2_produce_cert() {
+  local timestamp="${_CA_TT}"
+  local tmpCert="$(mk_tmp_file)"
+  local tmpChain="$(mk_tmp_file)"
+
+  awk '{print >out}; /----END CERTIFICATE-----/{out=tmpChain}' out="${tmpCert}" tmpChain="${tmpChain}" "${CERTDIR}/cert-${timestamp}.pem"
+
+  mv "${CERTDIR}/cert-${timestamp}.pem" "${CERTDIR}/fullchain-${timestamp}.pem"
+
+  cat "${tmpCert}" > "${CERTDIR}/cert-${timestamp}.pem"
+  cat "${tmpChain}" > "${CERTDIR}/chain-${timestamp}.pem"
+
+  rm "${tmpCert}" "${tmpChain}"
+}
+
+lev2_get_timestamp() {
+  echo "${_CA_TT}"
 }
 
 lev2_init() {

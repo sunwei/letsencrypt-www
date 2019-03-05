@@ -17,3 +17,11 @@ check_msg() {
 get_timestamp() {
   echo "$(date +%s)"
 }
+
+check_fd_3() {
+  if { true >&3; } 2>/dev/null; then
+      : # fd 3 looks OK
+  else
+      exit_err "_check_fd_3: FD 3 not open"
+  fi
+}
