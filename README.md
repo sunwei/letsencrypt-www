@@ -55,9 +55,9 @@ you can easily adjust the source code and fit your requirement, powered by **TDD
 For customize or development:
 
 ```console
-foo@bar:~$ whoami
 git clone git@github.com:sunwei/letsencrypt-www.git
 cd ./letsencrypt-www
+
 ./www
 ```
 
@@ -69,6 +69,7 @@ curl -OL  https://github.com/sunwei/letsencrypt-www/archive/v1.0.0.tar.gz
 tar -xvzf v1.0.0.tar.gz
 mv letsencrypt-www-1.0.0 www
 ENV PATH=/usr/local/bin/www:$PATH
+
 www
 ```
 
