@@ -14,13 +14,14 @@ _CA_URLS=
 _CA_ACCOUNT=
 _CA_ACCOUNT_RSA=
 _CA_ORDER=
+_CA_TT="$(get_timestamp)"
 
 _check_dependence() {
   formatter_check_lib_dependence && ssl_check_lib_dependence && http_check_lib_dependence
 }
 
 _lev2_new_account() {
-  _CA_ACCOUNT_RSA="${CERTDIR}/account-key-${timestamp}.pem"
+  _CA_ACCOUNT_RSA="${CERTDIR}/account-key-${_CA_TT}.pem"
   ssl_generate_rsa_2048 "${_CA_ACCOUNT_RSA}"
 }
 
