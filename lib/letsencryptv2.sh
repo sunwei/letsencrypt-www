@@ -68,13 +68,11 @@ _get_account_url() {
 }
 
 _get_rsa_pub_exponent64() {
-  local accountRSA="${1}"
-  printf '%x' "$(ssl_get_rsa_publicExponent "${accountRSA}")" | hex2bin | _urlbase64
+  printf '%x' "$(ssl_get_rsa_publicExponent "${_CA_ACCOUNT_RSA}")" | hex2bin | _urlbase64
 }
 
 _get_rsa_pub_mode64() {
-  local accountRSA="${1}"
-  ssl_get_rsa_pubMod64 "${accountRSA}" | hex2bin | _urlbase64
+  ssl_get_rsa_pubMod64 "${_CA_ACCOUNT_RSA}" | hex2bin | _urlbase64
 }
 
 _post_signed_request() {
@@ -108,7 +106,7 @@ lev2_reg_account() {
   local payload64="$(printf '%s' "${payload}" | urlbase64)"
   local protected64="$(printf '%s' "$(_get_jws)" | urlbase64)"
 
-  _CA_ACCOUNT="$(_post_signed_request "${url}" "${_CA_ACCOUNT_RSA}" "${protected64}" "${payload64}")"
+  _CA_ACCOUNT="$(_post_signed_request "${url}" "${protected64}" "${payload64}")"
 }
 
 _get_jwt() {
@@ -131,7 +129,30 @@ lev2_new_order() {
   local payload64=$(printf '%s' "${payload}" | urlbase64)
   local protected64="$(printf '%s' "$(_get_jwt "${url}")" | urlbase64)"
 
-  _CA_ORDER="$(_post_signed_request "${url}" "${accountRSA}" "${protected64}" "${payload64}")"
+  _CA_ORDER="$(_post_signed_request "${url}" "${protected64}" "${payload64}")"
+}
+
+_get_thumb_print() {
+  local pubExponent64="$(_get_account_pubExponent64)"
+  local pubMod64="$(_get_account_pubMod64)"
+
+  printf '{"e":"%s","kty":"RSA","n":"%s"}' "${pubExponent64}" "${pubMod64}" | ssl_get_data_binary | urlbase64
+}
+
+_build_authz() {
+  local orderAuthz="$(echo ${_CA_ORDER} | get_json_array_value authorizations | rm_quotes | rm_space)"
+  local response="$(http_get "${orderAuthz}" | clean_json)"
+
+  local identifier="$(echo "${response}" | get_json_dict_value identifier | get_json_string_value value)"
+
+  local challenge="$(echo "${response}" | get_json_array_value challenges | split_arr_mult_value | grep \"dns-01\")"
+  local challengeToken="$(echo "${challenge}" | get_json_string_value token)"
+  local challengeURL="$(echo "${challenge}" | get_json_string_value url)"
+
+  local thumbPrint="$(_get_thumb_print)"
+  local keyAuthHook="$(printf '%s' "${challengeToken}.${thumbPrint}" | ssl_get_data_binary | _urlbase64)"
+
+  printf '{"identifier":"%s","token":"%s","keyAuth":"%s","url":"%s"}' "${identifier}" "${challengeToken}" "${keyAuthHook}" "${challengeURL}"
 }
 
 lev2_init() {
