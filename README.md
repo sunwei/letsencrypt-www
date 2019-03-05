@@ -52,25 +52,32 @@ you can easily adjust the source code and fit your requirement, powered by **TDD
 
 ### Installing
 
-Option 1. From git master 
+For customize or development:
 
-```
+```console
 git clone git@github.com:sunwei/letsencrypt-www.git
 cd ./letsencrypt-www
 
+./www
 ```
 
-Option 2. From release 
+For tool used locally or in CI/CD. Check releases here: [GitHub letsencrypt-www releases](https://github.com/sunwei/letsencrypt-www/releases)
+
+```console
+cd /usr/local/bin
+curl -OL  https://github.com/sunwei/letsencrypt-www/archive/v1.0.0.tar.gz
+tar -xvzf v1.0.0.tar.gz
+mv letsencrypt-www-1.0.0 www
+ENV PATH=/usr/local/bin/www:$PATH
+
+www
+```
+
+From docker:
 
 ```
-curl -OL  https://github.com/sunwei/letsencrypt-www/archive/v0.0.4.tar.gz
-tar -xvzf v0.0.4.tar.gz
-mv letsencrypt-www-0.0.4 letsencrypt-www
-cd ./letsencrypt-www
-
+TODO
 ```
-
-Check releases here: [GitHub letsencrypt-www releases](https://github.com/sunwei/letsencrypt-www/releases)
 
 ## Features
 
