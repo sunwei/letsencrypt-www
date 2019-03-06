@@ -92,7 +92,7 @@ mv dnspod.env.example dnspod.env
 
 ### Demo
 
-![Gif Let's Encrypt WWW 1.0.0](.assets/1.0.0.gif)
+![Gif Let's Encrypt WWW 1.0.0](./assets/1.0.0.gif)
 
 [YouTube](https://youtu.be/CoFhusw9sqA)
 [Youku] Coming soon...
