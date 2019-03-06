@@ -1,16 +1,17 @@
 #!/bin/bash
 set -e
 
-source 'lib/json.sh'
-source 'lib/formatter.sh'
-source 'lib/http.sh'
-source 'lib/domain.sh'
-source 'lib/utils.sh'
+source "${LETS_ENCRYPT_WWW_LIB_PATH}/json.sh"
+source "${LETS_ENCRYPT_WWW_LIB_PATH}/formatter.sh"
+source "${LETS_ENCRYPT_WWW_LIB_PATH}/http.sh"
+source "${LETS_ENCRYPT_WWW_LIB_PATH}/domain.sh"
+source "${LETS_ENCRYPT_WWW_LIB_PATH}/utils.sh"
 
 # Need export DNSPod env firstly
 
-_LOGIN_TOKEN="${DNSPod_ID},${DNSPod_TOKEN}"
 DNSPod_RECORD_ID=
+
+_LOGIN_TOKEN="${DNSPod_ID},${DNSPod_TOKEN}"
 _DOMAIN=
 _SUB_DOMAIN=
 

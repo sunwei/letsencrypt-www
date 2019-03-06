@@ -3,7 +3,7 @@ fqdn ?= jsoneditoronline.cn
 unlock:
 	./unlock.sh
 
-export-env: unlock
+export-env:
 	cd ./secrets && source ./dnspod.env
 
 clean-cert:

@@ -8,6 +8,8 @@ BASE_DIR=$(dirname $0)
 SCRIPT_PATH="$( cd "${BASE_DIR}" && pwd -P )"
 CERT_DIR="./cert"
 
+for secret in "${SCRIPT_PATH}/secrets/*.env"; do source $secret; done
+
 export LETS_ENCRYPT_WWW_LIB_PATH="${SCRIPT_PATH}/lib"
 export CERT_DIR="${CERT_DIR}"
 
@@ -20,7 +22,7 @@ source "${LETS_ENCRYPT_WWW_LIB_PATH}/letsencryptv2.sh"
 
 FQDN=
 
-export DNSPod_HOOK="./provider/dnspod.sh"
+DNSPod_HOOK="./provider/dnspod.sh"
 DNSPod_RECORD_ID=
 
 # Usage: --help (-h)
@@ -52,10 +54,10 @@ command_issue_domain() {
 
   check_msg "Deploy dns-01 challenge to provider DNSPod..."
   lev2_build_authz
-  lev2_deploy_challenge
-  lev2_check_challenge_status
+  lev2_deploy_challenge "${DNSPod_HOOK}"
+  lev2_check_challenge_status "${DNSPod_HOOK}"
   lev2_valid_challenge
-  lev2_clean_challenge
+  lev2_clean_challenge "${DNSPod_HOOK}"
 
   exit 0
   check_msg "Deploy dns-01 challenge to provider DNSPod..."
