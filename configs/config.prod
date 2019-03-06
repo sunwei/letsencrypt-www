@@ -1,0 +1,8 @@
+# Which provider should be used? Currently only DNSPod is supported
+PROVIDER="dnspod"
+
+# Which challenge should be used? Currently only dns-01 is supported
+CHALLENGE_TYPE="dns-01"
+
+# Default keysize for private keys (default: 2048), or 4096
+KEYSIZE="2048"
