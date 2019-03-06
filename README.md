@@ -119,7 +119,11 @@ mv dnspod.env.example dnspod.env
 Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
 
 ## Authors
-Please refer to [authors page](https://github.com/sunwei/letsencrypt-www/graphs/contributors)
+![Sun Wei](https://avatars0.githubusercontent.com/u/47708665?s=60&v=4) 
+![Sun Zhongmou](https://avatars3.githubusercontent.com/u/25128500?s=60&v=4)
+![ihakula-com](https://avatars1.githubusercontent.com/u/4401110?s=60&v=4)
+
+For detail information, please refer to [authors page](https://github.com/sunwei/letsencrypt-www/graphs/contributors)
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details
