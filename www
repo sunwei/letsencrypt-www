@@ -64,6 +64,7 @@ command_issue_domain() {
 
   check_msg "Produce cert..."
   lev2_produce_cert
+  lev2_rename_cert "${FQDN}"
 
   check_msg "Done, www domain "${FQDN}" cert at: "
   echo "================"

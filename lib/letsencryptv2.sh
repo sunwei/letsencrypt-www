@@ -9,8 +9,11 @@ source "${LETS_ENCRYPT_WWW_LIB_PATH}/utils.sh"
 source "${LETS_ENCRYPT_WWW_LIB_PATH}/base64.sh"
 source "${LETS_ENCRYPT_WWW_LIB_PATH}/formatter.sh"
 
+CERT_DIR="${CERT_DIR:-./cert}"
+WWW_ENV="${WWW_ENV:-staging-}"
+
 _CA_TT="$(get_timestamp)"
-_CA="https://acme-"${LEWWW_ENV:-staging-}"v02.api.letsencrypt.org/directory"
+_CA="https://acme-"${WWW_ENV}"v02.api.letsencrypt.org/directory"
 _CA_URLS=
 _CA_ACCOUNT=
 _CA_ACCOUNT_RSA="${CERT_DIR}/account-key-${_CA_TT}.pem"
@@ -20,6 +23,8 @@ _CA_CHALLENGE_ARGS=
 _DOMAIN_PRI_KEY="${CERT_DIR}/private-${_CA_TT}.pem"
 _DOMAIN_CSR="${CERT_DIR}/${_CA_TT}.csr"
 _DOMAIN_CRT="${CERT_DIR}/cert-${_CA_TT}.pem"
+_DOMAIN_CHAIN="${CERT_DIR}/chain-${_CA_TT}.pem"
+_DOMAIN_FULL_CHAIN="${CERT_DIR}/fullchain-${_CA_TT}.pem"
 
 _check_dependence() {
   formatter_check_lib_dependence && ssl_check_lib_dependence && http_check_lib_dependence
@@ -259,16 +264,23 @@ lev2_sign_domain() {
 }
 
 lev2_produce_cert() {
-  local timestamp="${_CA_TT}"
   local tmpCert="$(mk_tmp_file)"
   local tmpChain="$(mk_tmp_file)"
 
-  awk '{print >out}; /----END CERTIFICATE-----/{out=tmpChain}' out="${tmpCert}" tmpChain="${tmpChain}" "${CERT_DIR}/cert-${timestamp}.pem"
-
-  mv "${CERT_DIR}/cert-${timestamp}.pem" "${CERT_DIR}/fullchain-${timestamp}.pem"
-
-  cat "${tmpCert}" > "${CERT_DIR}/cert-${timestamp}.pem"
-  cat "${tmpChain}" > "${CERT_DIR}/chain-${timestamp}.pem"
+  awk '{print >out}; /----END CERTIFICATE-----/{out=tmpChain}' out="${tmpCert}" tmpChain="${tmpChain}" "${_DOMAIN_CRT}"
+  mv "${_DOMAIN_CRT}" "${_DOMAIN_FULL_CHAIN}"
+  cat "${tmpChain}" > "${_DOMAIN_CHAIN}"
+  cat "${tmpCert}" > "${_DOMAIN_CRT}"
 
   rm "${tmpCert}" "${tmpChain}"
+}
+
+lev2_rename_cert() {
+  local domain="${1}"
+  mv "${_CA_ACCOUNT_RSA}" "${CERT_DIR}/${domain}-account-private-key.pem"
+  mv "${_DOMAIN_PRI_KEY}" "${CERT_DIR}/${domain}-private-key.pem"
+  mv "${_DOMAIN_CSR}" "${CERT_DIR}/${domain}.csr"
+  mv "${_DOMAIN_CRT}" "${CERT_DIR}/${domain}-public-key.pem"
+  mv "${_DOMAIN_CHAIN}" "${CERT_DIR}/${domain}-chain.csr"
+  mv "${_DOMAIN_FULL_CHAIN}" "${CERT_DIR}/${domain}-fullchain.csr"
 }
