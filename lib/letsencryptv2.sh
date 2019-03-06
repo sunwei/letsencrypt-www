@@ -22,12 +22,12 @@ _check_dependence() {
 }
 
 _lev2_new_account() {
-  _CA_ACCOUNT_RSA="${CERTDIR}/account-key-${_CA_TT}.pem"
+  _CA_ACCOUNT_RSA="${CERT_DIR}/account-key-${_CA_TT}.pem"
   ssl_generate_rsa_2048 "${_CA_ACCOUNT_RSA}"
 }
 
 _get_new_account_url() {
-  echo "$(get_json_url_by_name newAccount)"
+  echo "$(get_json_url_by_name "${_CA_URLS}" newAccount)"
 }
 
 _get_account_pubExponent() {
@@ -89,7 +89,7 @@ _post_signed_request() {
 }
 
 lev2_new_nonce() {
-  http_head $(get_json_url_by_name newNonce) | grep -i ^Replay-Nonce: | awk -F ': ' '{print $2}' | rm_new_line
+  http_head $(get_json_url_by_name "${_CA_URLS}" newNonce) | grep -i ^Replay-Nonce: | awk -F ': ' '{print $2}' | rm_new_line
 }
 
 _get_jws() {
@@ -120,7 +120,7 @@ _get_jwt() {
 }
 
 _get_new_order_url() {
-  echo "$(get_json_url_by_name newOrder)"
+  echo "$(get_json_url_by_name "${_CA_URLS}" newOrder)"
 }
 
 lev2_new_order() {
@@ -141,7 +141,7 @@ _get_thumb_print() {
   printf '{"e":"%s","kty":"RSA","n":"%s"}' "${pubExponent64}" "${pubMod64}" | ssl_get_data_binary | urlbase64
 }
 
-_build_authz() {
+lev2_build_authz() {
   local orderAuthz="$(echo ${_CA_ORDER} | get_json_array_value authorizations | rm_quotes | rm_space)"
   local response="$(http_get "${orderAuthz}" | clean_json)"
 
@@ -239,12 +239,12 @@ lev2_produce_cert() {
   local tmpCert="$(mk_tmp_file)"
   local tmpChain="$(mk_tmp_file)"
 
-  awk '{print >out}; /----END CERTIFICATE-----/{out=tmpChain}' out="${tmpCert}" tmpChain="${tmpChain}" "${CERTDIR}/cert-${timestamp}.pem"
+  awk '{print >out}; /----END CERTIFICATE-----/{out=tmpChain}' out="${tmpCert}" tmpChain="${tmpChain}" "${CERT_DIR}/cert-${timestamp}.pem"
 
-  mv "${CERTDIR}/cert-${timestamp}.pem" "${CERTDIR}/fullchain-${timestamp}.pem"
+  mv "${CERT_DIR}/cert-${timestamp}.pem" "${CERT_DIR}/fullchain-${timestamp}.pem"
 
-  cat "${tmpCert}" > "${CERTDIR}/cert-${timestamp}.pem"
-  cat "${tmpChain}" > "${CERTDIR}/chain-${timestamp}.pem"
+  cat "${tmpCert}" > "${CERT_DIR}/cert-${timestamp}.pem"
+  cat "${tmpChain}" > "${CERT_DIR}/chain-${timestamp}.pem"
 
   rm "${tmpCert}" "${tmpChain}"
 }

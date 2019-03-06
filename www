@@ -16,6 +16,7 @@ source "${LETS_ENCRYPT_WWW_LIB_PATH}/formatter.sh"
 source "${LETS_ENCRYPT_WWW_LIB_PATH}/ssl.sh"
 source "${LETS_ENCRYPT_WWW_LIB_PATH}/http.sh"
 source "${LETS_ENCRYPT_WWW_LIB_PATH}/utils.sh"
+source "${LETS_ENCRYPT_WWW_LIB_PATH}/letsencryptv2.sh"
 
 FQDN=
 
@@ -41,24 +42,22 @@ command_issue_domain() {
   local timestamp="$(date +%s)"
 
   check_msg "Init environment..."
-  init_ca_config
+  lev2_init
 
   check_msg "Apply Let's Encrypt account..."
-  local accountRSA="${CERT_DIR}/account-key-${timestamp}.pem"
-  ssl_generate_rsa_2048 "${accountRSA}"
-  reg_account "${accountRSA}"
+  lev2_reg_account
 
   check_msg "Start new order..."
-  new_order "${accountRSA}"
+  lev2_new_order "${FQDN}"
 
   check_msg "Deploy dns-01 challenge to provider DNSPod..."
-  local challengeArgs="$(build_authz "${accountRSA}")"
+  lev2_build_authz
+  lev2_deploy_challenge
+  lev2_check_challenge_status
+  lev2_valid_challenge
+  lev2_clean_challenge
 
-  deploy_challenge "${challengeArgs}"
-  check_challenge_status "${challengeArgs}"
-  valid_challenge "${accountRSA}" "${challengeArgs}"
-  clean_challenge "${challengeArgs}"
-
+  exit 0
   check_msg "Deploy dns-01 challenge to provider DNSPod..."
   local privateKey="${CERT_DIR}/private-${timestamp}.pem"
   local csr="${CERT_DIR}/${timestamp}.csr"
