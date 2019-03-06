@@ -19,7 +19,7 @@ ssl_base64_encrypt() {
 }
 
 ssl_generate_rsa_2048() {
-  openssl genrsa -out "${1}" 2048
+  openssl genrsa -out "${1}" 2048 2>/dev/null
 }
 
 ssl_generate_subject_with_domain() {

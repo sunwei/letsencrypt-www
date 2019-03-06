@@ -9,21 +9,28 @@ source "${LETS_ENCRYPT_WWW_LIB_PATH}/utils.sh"
 source "${LETS_ENCRYPT_WWW_LIB_PATH}/base64.sh"
 source "${LETS_ENCRYPT_WWW_LIB_PATH}/formatter.sh"
 
+_CA_TT="$(get_timestamp)"
 _CA="https://acme-"${LEWWW_ENV:-staging-}"v02.api.letsencrypt.org/directory"
 _CA_URLS=
 _CA_ACCOUNT=
-_CA_ACCOUNT_RSA=
+_CA_ACCOUNT_RSA="${CERT_DIR}/account-key-${_CA_TT}.pem"
 _CA_ORDER=
 _CA_CHALLENGE_ARGS=
-_CA_TT="$(get_timestamp)"
+
+_DOMAIN_PRI_KEY="${CERT_DIR}/private-${_CA_TT}.pem"
+_DOMAIN_CSR="${CERT_DIR}/${_CA_TT}.csr"
+_DOMAIN_CRT="${CERT_DIR}/cert-${_CA_TT}.pem"
 
 _check_dependence() {
   formatter_check_lib_dependence && ssl_check_lib_dependence && http_check_lib_dependence
 }
 
 _lev2_new_account() {
-  _CA_ACCOUNT_RSA="${CERT_DIR}/account-key-${_CA_TT}.pem"
   ssl_generate_rsa_2048 "${_CA_ACCOUNT_RSA}"
+}
+
+_lev2_new_private_key() {
+  ssl_generate_rsa_2048 "${_DOMAIN_PRI_KEY}"
 }
 
 _get_new_account_url() {
@@ -124,10 +131,10 @@ _get_new_order_url() {
 }
 
 lev2_new_order() {
-  local FQDN="${1}"
+  local domain="${1}"
   local url="$(_get_new_order_url)"
 
-  local payload='{"identifiers": [{"type": "dns", "value": "'"${FQDN}"'"}]}'
+  local payload='{"identifiers": [{"type": "dns", "value": "'"${domain}"'"}]}'
   local payload64=$(printf '%s' "${payload}" | urlbase64)
   local protected64="$(printf '%s' "$(_get_jwt "${url}")" | urlbase64)"
 
@@ -215,7 +222,7 @@ lev2_valid_challenge() {
 lev2_sign_csr() {
   check_fd_3
 
-  local accountRSA="${_CA_ACCOUNT_RSA}" csr="${2}"
+  local accountRSA="${_CA_ACCOUNT_RSA}" csr="${1}"
   local finalize="$(echo "${_CA_ORDER}" | get_json_string_value finalize)"
 
   local csr64="$( <<<"${csr}" openssl req -config "$(ssl_get_conf)" -outform DER | urlbase64)"
@@ -234,6 +241,23 @@ lev2_sign_csr() {
   echo " + Done!"
 }
 
+lev2_get_timestamp() {
+  echo "${_CA_TT}"
+}
+
+lev2_init() {
+  _check_dependence
+  _lev2_new_account
+
+  _CA_URLS=$(http_get "${_CA}")
+}
+
+lev2_sign_domain() {
+  _lev2_new_private_key
+  ssl_generate_san_csr "${_DOMAIN_PRI_KEY}" "${_DOMAIN_CSR}" "${1}"
+  lev2_sign_csr "$(< "${_DOMAIN_CSR}")" 3>"${_DOMAIN_CRT}"
+}
+
 lev2_produce_cert() {
   local timestamp="${_CA_TT}"
   local tmpCert="$(mk_tmp_file)"
@@ -247,15 +271,4 @@ lev2_produce_cert() {
   cat "${tmpChain}" > "${CERT_DIR}/chain-${timestamp}.pem"
 
   rm "${tmpCert}" "${tmpChain}"
-}
-
-lev2_get_timestamp() {
-  echo "${_CA_TT}"
-}
-
-lev2_init() {
-  _check_dependence
-  _lev2_new_account
-
-  _CA_URLS=$(http_get "${_CA}")
 }

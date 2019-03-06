@@ -59,18 +59,11 @@ command_issue_domain() {
   lev2_valid_challenge
   lev2_clean_challenge "${DNSPod_HOOK}"
 
-  exit 0
-  check_msg "Deploy dns-01 challenge to provider DNSPod..."
-  local privateKey="${CERT_DIR}/private-${timestamp}.pem"
-  local csr="${CERT_DIR}/${timestamp}.csr"
-  local crt="${CERT_DIR}/cert-${timestamp}.pem"
-
-  ssl_generate_rsa_2048 "${privateKey}"
-  generate_csr "${privateKey}" "${csr}"
-  sign_csr "${accountRSA}" "$(< "${csr}")" 3>"${crt}"
+  check_msg "Sign domain ${FQDN}..."
+  lev2_sign_domain "${FQDN}"
 
   check_msg "Produce cert..."
-  produce_cert "${timestamp}"
+  lev2_produce_cert
 
   check_msg "Done, www domain "${FQDN}" cert at: "
   echo "================"
