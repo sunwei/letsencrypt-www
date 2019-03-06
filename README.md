@@ -18,9 +18,7 @@ you can easily adjust the source code and fit your requirement, powered by **TDD
   - [Installing](#prerequisites)
 - [Tests](#-running-the-tests)
 - [Usage](#-usage)
-  - [MacOS](#macos)
-  - [Docker](#docker)
-    - [Demo](#html)
+  - [Demo](#demo)
 - [Features](#-features)
   - [Create](#create)
   - [Renew](#renew)
@@ -38,11 +36,11 @@ you can easily adjust the source code and fit your requirement, powered by **TDD
 - [License](#-license)
 
 
-## Operating System Support
+## Operating System tested
 
-| Darwin | 
-| :---------: | 
-| Yes |
+| macOS Sierra | Ubuntu trusty |  
+| :---------: | :---------: | 
+| Yes | Yes |
 
 ## Install
 
@@ -58,7 +56,7 @@ For customize or development:
 git clone git@github.com:sunwei/letsencrypt-www.git
 cd ./letsencrypt-www
 
-./www
+./www --help
 ```
 
 For tool used locally or in CI/CD. Check releases here: [GitHub letsencrypt-www releases](https://github.com/sunwei/letsencrypt-www/releases)
@@ -67,10 +65,10 @@ For tool used locally or in CI/CD. Check releases here: [GitHub letsencrypt-www 
 cd /usr/local/bin
 curl -OL  https://github.com/sunwei/letsencrypt-www/archive/v1.0.0.tar.gz
 tar -xvzf v1.0.0.tar.gz
-mv letsencrypt-www-1.0.0 www
-ENV PATH=/usr/local/bin/www:$PATH
+mv letsencrypt-www-1.0.0 letsencrypt-www
+cd ./letsencrypt-www
 
-www
+./www --help
 ```
 
 From docker:
@@ -78,6 +76,31 @@ From docker:
 ```
 TODO
 ```
+
+## Running the tests
+```aidl
+make tests
+```
+
+## Usage
+
+Take DNSPod provider for example, and issue your domain only three steps:
+
+1. Add your domain to DNSPod, you could do it [here](https://www.dnspod.cn/console/dns)
+2. Rename the environment parameters template to **dnspod.env**, and replace the id and token as yours. [How to apply id and token](https://www.dnspod.cn/console/user/security)
+```aidl
+cd ./letsencrypt-www
+cd ./secrets
+mv dnspod.env.example dnspod.env
+```
+3. Issue your domain
+```aidl
+./www --help
+./www example.letsencryptwww.com
+```
+
+### Demo
+
 
 ## Features
 
