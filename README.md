@@ -14,11 +14,11 @@ you can easily adjust the source code and fit your requirement, powered by **TDD
 
 
 ## Table of Contents
-- [OS](#-operating-system-support)
+- [Operating System Tested](#-operating-system-tested)
 - [Install](#-install)
   - [Prerequisites](#prerequisites)
   - [Installing](#prerequisites)
-- [Tests](#-running-the-tests)
+- [Running The Tests](#-running-the-tests)
 - [Usage](#-usage)
   - [Demo](#demo)
 - [Features](#-features)
@@ -27,7 +27,7 @@ you can easily adjust the source code and fit your requirement, powered by **TDD
 - [License](#-license)
 
 
-## Operating System tested
+## Operating System Tested
 
 | macOS Sierra | Ubuntu trusty |  
 | :---------: | :---------: | 
