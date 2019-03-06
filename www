@@ -9,7 +9,7 @@ SCRIPT_PATH="$( cd "${BASE_DIR}" && pwd -P )"
 CERT_DIR="./cert"
 
 export LETS_ENCRYPT_WWW_LIB_PATH="${SCRIPT_PATH}/lib"
-export CERT_DIR="${CERTDIR}"
+export CERT_DIR="${CERT_DIR}"
 
 source "${LETS_ENCRYPT_WWW_LIB_PATH}/json.sh"
 source "${LETS_ENCRYPT_WWW_LIB_PATH}/formatter.sh"
@@ -22,27 +22,29 @@ FQDN=
 export DNSPod_HOOK="./provider/dnspod.sh"
 DNSPod_RECORD_ID=
 
-main() {
-  exit 0
+# Usage: --help (-h)
+# Description: Show help text
+command_help() {
+  printf "Usage: %s [options...] <domain> \n\n" "${0}"
+  printf "Default command: --help\n\n"
+  echo "Commands:"
+  grep -e '^[[:space:]]*# Usage:' -e '^[[:space:]]*# Description:' -e '^command_.*()[[:space:]]*{' "${0}" | while read -r usage; read -r description; read -r command; do
+    if [[ ! "${usage}" =~ Usage ]] || [[ ! "${description}" =~ Description ]] || [[ ! "${command}" =~ ^command_ ]]; then
+      _exiterr "Error generating help text."
+    fi
+    printf " %-32s %s\n" "${usage##"# Usage: "}" "${description##"# Description: "}"
+  done
+}
 
-  check_command
-
-  case "$(get_command)" in
-    issue) command_issue;;
-    version) command_version;;
-    *) command_help; exit 1;;
-  esac
-
-
+command_issue_domain() {
   FQDN="${1}"
-
   local timestamp="$(date +%s)"
 
   check_msg "Init environment..."
   init_ca_config
 
   check_msg "Apply Let's Encrypt account..."
-  local accountRSA="${CERTDIR}/account-key-${timestamp}.pem"
+  local accountRSA="${CERT_DIR}/account-key-${timestamp}.pem"
   ssl_generate_rsa_2048 "${accountRSA}"
   reg_account "${accountRSA}"
 
@@ -58,9 +60,9 @@ main() {
   clean_challenge "${challengeArgs}"
 
   check_msg "Deploy dns-01 challenge to provider DNSPod..."
-  local privateKey="${CERTDIR}/private-${timestamp}.pem"
-  local csr="${CERTDIR}/${timestamp}.csr"
-  local crt="${CERTDIR}/cert-${timestamp}.pem"
+  local privateKey="${CERT_DIR}/private-${timestamp}.pem"
+  local csr="${CERT_DIR}/${timestamp}.csr"
+  local crt="${CERT_DIR}/cert-${timestamp}.pem"
 
   ssl_generate_rsa_2048 "${privateKey}"
   generate_csr "${privateKey}" "${csr}"
@@ -71,9 +73,27 @@ main() {
 
   check_msg "Done, www domain "${FQDN}" cert at: "
   echo "================"
-  echo "$( cd "${BASE_DIR}/${CERTDIR}" && pwd -P )"
+  echo "$( cd "${BASE_DIR}/${CERT_DIR}" && pwd -P )"
   echo "================"
+}
 
+main() {
+  [[ -z "${@}" ]] && eval set -- "--help"
+
+  while (( ${#} )); do
+    case "${1}" in
+      --help|-h)
+        command_help
+        exit 0
+        ;;
+
+      *)
+        command_issue_domain "${1}"
+        ;;
+    esac
+
+    shift 1
+  done
 }
 
 main "${@-}"
