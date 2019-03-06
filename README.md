@@ -3,6 +3,8 @@
 # Let's Encrypt WWW 
 
 [![Build Status](https://travis-ci.org/sunwei/letsencrypt-www.svg?branch=master)](https://travis-ci.org/sunwei/letsencrypt-www)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 
 For **developer** or **website admin** who need to **manage certificate**, the **Letsencrypt-WWW** is a **command line tool** 
 that purely implemented by shell language, unlike other powerful and complex tool, LeWWW provide **lightweight solution**, 
@@ -20,19 +22,8 @@ you can easily adjust the source code and fit your requirement, powered by **TDD
 - [Usage](#-usage)
   - [Demo](#demo)
 - [Features](#-features)
-  - [Create](#create)
-  - [Renew](#renew)
-  - [Revoke](#revoke)
-  - [Challenge type](#challenge-type)
-    - [dns-01](#dns-01)
-    - [http-01](#easy-wysiwyg-mode)
-  - [Provider](#dns-provider)
-    - [DNSPod](#dns-pod)
-    - [Potential providers](#potential-providers)
 - [Build With](#-build-with)
-- [Examples](#-examples)
 - [Contributing](#-contributing)
-- [Used By](#-used-by)
 - [License](#-license)
 
 
@@ -78,7 +69,7 @@ TODO
 ```
 
 ## Running the tests
-```aidl
+```console
 make tests
 ```
 
@@ -88,26 +79,46 @@ Take DNSPod provider for example, and issue your domain only three steps:
 
 1. Add your domain to DNSPod, you could do it [here](https://www.dnspod.cn/console/dns)
 2. Rename the environment parameters template to **dnspod.env**, and replace the id and token as yours. [How to apply id and token](https://www.dnspod.cn/console/user/security)
-```aidl
+```console
 cd ./letsencrypt-www
 cd ./secrets
 mv dnspod.env.example dnspod.env
 ```
 3. Issue your domain
-```aidl
+```console
 ./www --help
 ./www example.letsencryptwww.com
 ```
 
 ### Demo
 
+![Gif Let's Encrypt WWW 1.0.0](.assets/1.0.0.gif)
+
+[YouTube](https://youtu.be/CoFhusw9sqA)
+[Youku] Coming soon...
 
 ## Features
+    
+* Challenge types
+  * DNS-01 **Supported**
+  * HTTP-01 coming soon...
+  * TLS-SNI-01 coming...
 
-What things you need to install the software and how to install them
+* Providers
+  * DNSPod **Supported**
+  * Google coming soon
+  * Others...
 
-### Productive Markdown mode
+## Build With
+* [Let's Encrypt](https://letsencrypt.org/docs/) as CA
+* [git-crypt](https://github.com/AGWA/git-crypt) to encrypt sensitive data
+* [Bats](https://github.com/sstephenson/bats) as test framework
 
-```
-Give examples
-```
+## Contributing
+Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
+
+## Authors
+Please refer to [authors page](https://github.com/sunwei/letsencrypt-www/graphs/contributors)
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details
