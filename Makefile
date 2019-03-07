@@ -1,19 +1,28 @@
-fqdn ?= jsoneditoronline.cn
+fqdn ?= example.sunzhongmou.com
 
 unlock:
 	./unlock.sh
-
-export-env:
-	cd ./secrets && source ./dnspod.env
-
-clean-cert:
-	rm -rf ./cert/*
 
 update-submodule:
 	git submodule update --init --recursive
 
 tests: update-submodule
 	./test/libs/bats/bin/bats ./test/*.sh
+
+build:
+	docker-compose build letsencrypt-www
+
+push: unlock
+	./docker-push.sh
+
+issue:
+	docker-compose -f docker-compose.yml -f docker-compose.override.yml run --rm \
+	-e FQDN=$(fqdn) letsencrypt-www
+
+shell:
+	docker-compose -f docker-compose.yml -f docker-compose.override.yml run --rm \
+	 -e FQDN=$(fqdn) letsencrypt-www \
+	/bin/bash
 
 setup-dev:
 	mkdir tmp && cd tmp \
