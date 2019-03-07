@@ -8,8 +8,10 @@ BASE_DIR=$(dirname $0)
 SCRIPT_PATH="$( cd "${BASE_DIR}" && pwd -P )"
 CERT_DIR="./cert"
 
+
 for secret in "${SCRIPT_PATH}/secrets/*.env"; do source $secret; done
 
+export WWW_ENV=stg
 export LETS_ENCRYPT_WWW_LIB_PATH="${SCRIPT_PATH}/lib"
 export CERT_DIR="${CERT_DIR}"
 
@@ -21,7 +23,6 @@ source "${LETS_ENCRYPT_WWW_LIB_PATH}/utils.sh"
 source "${LETS_ENCRYPT_WWW_LIB_PATH}/letsencryptv2.sh"
 
 FQDN=
-
 DNSPod_HOOK="./provider/dnspod.sh"
 DNSPod_RECORD_ID=
 
@@ -37,6 +38,12 @@ command_help() {
     fi
     printf " %-32s %s\n" "${usage##"# Usage: "}" "${description##"# Description: "}"
   done
+}
+
+# Usage: --prod (-p)
+# Description: Set the WWW env to production (default staging)
+command_prod() {
+  export WWW_ENV=prod
 }
 
 command_issue_domain() {
@@ -77,16 +84,20 @@ main() {
 
   while (( ${#} )); do
     case "${1}" in
+
       --help|-h)
         command_help
         exit 0
+        ;;
+
+      --prod|-p)
+        command_prod
         ;;
 
       *)
         command_issue_domain "${1}"
         ;;
     esac
-
     shift 1
   done
 }

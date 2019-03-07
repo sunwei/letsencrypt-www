@@ -10,10 +10,10 @@ source "${LETS_ENCRYPT_WWW_LIB_PATH}/base64.sh"
 source "${LETS_ENCRYPT_WWW_LIB_PATH}/formatter.sh"
 
 CERT_DIR="${CERT_DIR:-./cert}"
-WWW_ENV="${WWW_ENV:-staging-}"
 
 _CA_TT="$(get_timestamp)"
-_CA="https://acme-"${WWW_ENV}"v02.api.letsencrypt.org/directory"
+_CA_ENV="staging-" && [[ "${WWW_ENV}" = "prod" ]] && _CA_ENV=""
+_CA="https://acme-"${_CA_ENV}"v02.api.letsencrypt.org/directory"
 _CA_URLS=
 _CA_ACCOUNT=
 _CA_ACCOUNT_RSA="${CERT_DIR}/account-key-${_CA_TT}.pem"
