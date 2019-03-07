@@ -1,0 +1,11 @@
+version: '3.2'
+
+services:
+  letsencrypt-www:
+    image: letsencrypt-www:latest
+    build: .
+    env_file:
+      - ./configs/www.env
+    environment:
+      - FQDN
+

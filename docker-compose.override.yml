@@ -1,0 +1,7 @@
+version: '3.2'
+
+services:
+  letsencrypt-www:
+    volumes:
+      - ./:/repo
+      - ./cert:/app/cert
