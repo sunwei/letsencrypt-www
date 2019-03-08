@@ -39,8 +39,11 @@ you can easily adjust the source code and fit your requirement, powered by **TDD
 ## Install
 
 ### Prerequisites
-
+With Shell
 * [OpenSSL](https://www.openssl.org/source/)
+
+With Docker
+* [Docker compose 3](https://docs.docker.com/compose/compose-file/)
 
 ### Installing
 
