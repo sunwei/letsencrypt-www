@@ -72,7 +72,7 @@ make tests
 
 ## Usage
 
-Take DNSPod provider for example, and issue your domain only three steps:
+Take DNSPod provider for example, and issue your domain in all easy way:
 
 1. Add your domain to DNSPod, you could do it [here](https://www.dnspod.cn/console/dns)
 2. Rename the environment parameters template to **dnspod.env**, and replace the id and token as yours. [How to apply id and token](https://www.dnspod.cn/console/user/security)
