@@ -81,8 +81,8 @@ cd ./letsencrypt-www
 cd ./secrets
 mv dnspod.env.example dnspod.env
 ```
-3. Issue your domain, default env is staging
 ### Shell
+3. Issue your domain, default env is staging
 ```console
 ./www --help
 ./www -p example.letsencryptwww.com
