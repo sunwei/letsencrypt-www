@@ -20,7 +20,10 @@ you can easily adjust the source code and fit your requirement, powered by **TDD
   - [Installing](#prerequisites)
 - [Running The Tests](#-running-the-tests)
 - [Usage](#-usage)
-  - [Demo](#demo)
+  - [Shell](#shell)
+    - [Demo](#demo)
+  - [Docker](#docker)
+    - [Demo](#demo)
 - [Features](#-features)
 - [Build With](#-build-with)
 - [Contributing](#-contributing)
@@ -62,12 +65,6 @@ cd ./letsencrypt-www
 ./www --help
 ```
 
-From docker:
-
-```
-TODO
-```
-
 ## Running the tests
 ```console
 make tests
@@ -85,18 +82,29 @@ cd ./secrets
 mv dnspod.env.example dnspod.env
 ```
 3. Issue your domain, default env is staging
+### Shell
 ```console
 ./www --help
 ./www -p example.letsencryptwww.com
 ```
-
-### Demo
+#### Demo
 
 ![Gif Let's Encrypt WWW 1.0.0](./assets/1.0.0.gif)
 
 [YouTube](https://youtu.be/CoFhusw9sqA)
 
 [Youku] Coming soon...
+
+### Docker:
+3. Config you docker env variable at ./configs/www.env
+4. Build docker image and issue the domain
+```console
+make build
+make issue
+```
+#### Demo
+
+Coming soon...
 
 ## Features
     
