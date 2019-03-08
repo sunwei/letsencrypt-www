@@ -32,9 +32,9 @@ you can easily adjust the source code and fit your requirement, powered by **TDD
 
 ## Operating System Tested
 
-| macOS Sierra | Ubuntu trusty |  
-| :---------: | :---------: | 
-| Yes | Yes |
+| macOS Sierra | Ubuntu trusty | CentOS 7 |  
+| :---------: | :---------: | :---------: | 
+| Yes | Yes | Yes |
 
 ## Install
 
