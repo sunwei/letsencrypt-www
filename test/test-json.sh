@@ -37,3 +37,7 @@ teardown() {
   assert_equal $(echo "${dictValue}") "${DUMMY_DICT}"
 }
 
+@test "Should get string value from json data" {
+  run get_json_url_by_name "${DUMMY_DATA}" "status"
+  assert_output "valid"
+}
