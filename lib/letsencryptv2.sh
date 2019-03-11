@@ -254,7 +254,7 @@ lev2_init() {
   _check_dependence
   _lev2_new_account
 
-  _CA_URLS=$(http_get "${_CA}")
+  _CA_URLS=$(http_get "${_CA}" | clean_json)
 }
 
 lev2_sign_domain() {
