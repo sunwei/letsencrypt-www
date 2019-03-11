@@ -7,6 +7,7 @@ update-submodule:
 	git submodule update --init --recursive
 
 tests: update-submodule
+	export LETS_ENCRYPT_WWW_LIB_PATH=$(CURDIR)/lib && \
 	./test/libs/bats/bin/bats ./test/*.sh
 
 build:
