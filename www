@@ -26,28 +26,39 @@ FQDN=
 DNSPod_HOOK="./provider/dnspod.sh"
 DNSPod_RECORD_ID=
 
-# Usage: --help (-h)
+# Usage: -h, --help
 # Description: Show help text
-command_help() {
-  printf "Usage: %s [options...] <domain> \n\n" "${0}"
+option_help() {
+  printf "Usage: %s COMMAND [options...] <domain> \n\n" "${0}"
   printf "Default command: --help\n\n"
-  echo "Commands:"
-  grep -e '^[[:space:]]*# Usage:' -e '^[[:space:]]*# Description:' -e '^command_.*()[[:space:]]*{' "${0}" | while read -r usage; read -r description; read -r command; do
-    if [[ ! "${usage}" =~ Usage ]] || [[ ! "${description}" =~ Description ]] || [[ ! "${command}" =~ ^command_ ]]; then
-      _exiterr "Error generating help text."
+
+  echo "Options:"
+  grep -e '^[[:space:]]*# Usage:' -e '^[[:space:]]*# Description:' -e '^option_.*()[[:space:]]*{' "${0}" | while read -r usage; read -r description; read -r option; do
+    if [[ ! "${usage}" =~ Usage ]] || [[ ! "${description}" =~ Description ]] || [[ ! "${option}" =~ ^option_ ]]; then
+      exit_err "Error generating help text."
     fi
     printf " %-32s %s\n" "${usage##"# Usage: "}" "${description##"# Description: "}"
   done
+
+  printf "\n"
+  echo "Commands:"
+  grep -e '^[[:space:]]*# Command Usage:' -e '^[[:space:]]*# Command Description:' -e '^command_.*()[[:space:]]*{' "${0}" | while read -r usage; read -r description; read -r command; do
+    if [[ ! "${usage}" =~ Usage ]] || [[ ! "${description}" =~ Description ]] || [[ ! "${command}" =~ ^command_ ]]; then
+      exit_err "Error generating help text."
+    fi
+    printf " %-32s %s\n" "${usage##"# Command Usage: "}" "${description##"# Command Description: "}"
+  done
 }
 
-# Usage: --prod (-p)
+# Usage: -p, --prod
 # Description: Set the WWW env to production (default staging)
-command_prod() {
+option_prod() {
   export WWW_ENV=prod
 }
 
-command_issue_domain() {
-  FQDN="${1}"
+# Command Usage: create
+# Command Description: Create a new certification for domain
+command_create() {
   local timestamp="$(date +%s)"
 
   check_msg "Init environment..."
@@ -79,27 +90,62 @@ command_issue_domain() {
   echo "================"
 }
 
+# Command Usage: renew
+# Command Description: Renew certification for the domain
+command_renew() {
+  echo "Coming soon..."
+}
+
+# Command Usage: revoke
+# Command Description: Revoke certification for the domain
+command_revoke() {
+  echo "Coming soon..."
+}
+
 main() {
   [[ -z "${@}" ]] && eval set -- "--help"
+
+  local theCommand=
+
+  set_command() {
+    [[ -z "${theCommand}" ]] || exit_err "Only one command at a time!"
+    theCommand="${1}"
+  }
 
   while (( ${#} )); do
     case "${1}" in
 
       --help|-h)
-        command_help
+        option_help
         exit 0
         ;;
 
       --prod|-p)
-        command_prod
+        option_prod
+        ;;
+
+      create|renew|revoke)
+        set_command "${1}"
         ;;
 
       *)
-        command_issue_domain "${1}"
+        FQDN="${1}"
         ;;
     esac
+
     shift 1
   done
+
+  [[ ! -z "${theCommand}" ]] || exit_err "Command not found!"
+  [[ ! -z "${FQDN}" ]] || exit_err "Domain not found!"
+
+  case "${theCommand}" in
+    create) command_create;;
+    renew) command_renew;;
+    revoke) command_revoke;;
+
+    *) option_help; exit 1;;
+  esac
 }
 
 main "${@-}"
