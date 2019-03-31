@@ -6,4 +6,5 @@
 
 .idea
 /test/libs/*
-/cert/*
+/cert/*.csr
+/cert/*.pem
