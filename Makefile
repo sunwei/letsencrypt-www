@@ -43,3 +43,7 @@ install-tests-lib:
 		&& git submodule add -f https://github.com/sstephenson/bats bats \
 		&& git submodule add -f https://github.com/ztombol/bats-support bats-support \
 		&& git submodule add -f https://github.com/ztombol/bats-assert bats-assert
+
+#openssl verify -CAfile fakelerootx1.pem -untrusted fakeleintermediatex1.pem /Users/wwsun/Sunzhongmou/github/letsencrypt/cert/abc.sunzhongmou.com-chain.csr
+#https://letsencrypt.org/docs/staging-environment/
+#https://letsencrypt.org/certificates/
