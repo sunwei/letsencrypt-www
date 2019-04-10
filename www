@@ -54,6 +54,7 @@ option_help() {
 # Description: Set the WWW env to production (default staging)
 option_prod() {
   export WWW_ENV=prod
+  _lev2_refresh_ca
 }
 
 # Command Usage: create

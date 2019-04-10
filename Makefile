@@ -1,4 +1,4 @@
-fqdn ?= example.sunzhongmou.com
+fqdn ?= abcd.sunzhongmou.com
 
 unlock:
 	./unlock.sh
@@ -44,6 +44,16 @@ install-tests-lib:
 		&& git submodule add -f https://github.com/ztombol/bats-support bats-support \
 		&& git submodule add -f https://github.com/ztombol/bats-assert bats-assert
 
-#openssl verify -CAfile fakelerootx1.pem -untrusted fakeleintermediatex1.pem /Users/wwsun/Sunzhongmou/github/letsencrypt/cert/abc.sunzhongmou.com-chain.csr
-#https://letsencrypt.org/docs/staging-environment/
-#https://letsencrypt.org/certificates/
+le-stg-root-crt:
+	curl https://letsencrypt.org/certs/fakeleintermediatex1.pem -o ./cert/root/stg-intermediate.pem && \
+	curl https://letsencrypt.org/certs/fakelerootx1.pem -o ./cert/root/stg-root.pem
+
+verify-stg:
+	openssl verify -CAfile ./cert/root/stg-root.pem -untrusted ./cert/root/stg-intermediate.pem ./cert/$(fqdn)-fullchain.csr
+
+le-root-crt:
+	curl https://letsencrypt.org/certs/letsencryptauthorityx3.pem.txt -o ./cert/root/intermediate.pem && \
+	curl https://letsencrypt.org/certs/isrgrootx1.pem.txt -o ./cert/root/root.pem
+
+verify:
+	openssl verify -CAfile ./cert/root/root.pem -untrusted ./cert/root/intermediate.pem ./cert/$(fqdn)-fullchain.csr
